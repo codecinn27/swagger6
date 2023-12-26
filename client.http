@@ -15,6 +15,16 @@ Content-Type: application/json
 GET http://localhost:3000/admin/visits
 Content-Type: application/json
 
+###
+POST http://localhost:3000/admin/registerHost
+Content-Type: application/json
+
+{
+    "username":"yc1",
+    "password":"12345",
+    "email":"gg@gmail.com",
+    "phoneNumber":"123456789"
+}
 
 ###
 POST http://localhost:3000/login

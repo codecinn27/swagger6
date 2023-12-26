@@ -96,8 +96,9 @@ async function run() {
 
     app.post('/admin/registerHost', async (req, res) => {
         try {
-          const result = await registerHost(client, req.body);
-          res.status(result.status).json({ message: result.message });
+          let data = req.body;
+          const result = await registerHost(client, data);
+          res.json(result);
         } catch (error) {
           console.error('Error during /admin/registerHost:', error);
           res.status(500).json({ error: 'Internal Server Error' });
@@ -197,4 +198,31 @@ async function decryptPassword(password, compare) {
   return match
 }
 
+async function registerHost(client, data){
+  try{
+     //to detect any error with your terminal
+    console.log("Request body: ", data);
+    const {username, password, email, phoneNumber} = data;
+    // Check if the username is unique (you can add more validation if needed)
+    
+    const existingUser = await client.db(dbName).collection(collection1).findOne({username});
+    if (existingUser){
+      return {status:400 , data: { error: 'Username already exists' }};
+    }
+
+    await client.db(dbName).collection(collection1).insertOne({
+      username,
+      password,
+      email,
+      phoneNumber,
+      category: "host",
+      visitors: []
+    });
+    return {status:201, data: { message: 'Host registered susccessfully'}};
+    }catch (error) {
+      console.error('Error registering host:', error);
+      return {status: 500, data: {error: 'Internal Server Error'}};
+
+  }    
+}
 
