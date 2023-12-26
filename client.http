@@ -12,6 +12,11 @@ Content-Type: application/json
 }
 
 ###
+GET http://localhost:3000/showCurrentlyLogin
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluMSIsInVzZXJJZCI6IjY1OGIxMzgyYTUwMjYzNTZjY2NmNmJhZiIsImNhdGVnb3J5IjoiYWRtaW4iLCJpYXQiOjE3MDM2MTUxOTEsImV4cCI6MTcwMzYxODc5MX0.LabXfkMisectnaiSwseS4KQLxTOV1rP5pU9MPkDXB-I
+Content-Type: application/json
+
+###
 GET http://localhost:3000/admin/visits
 Content-Type: application/json
 
@@ -34,3 +39,11 @@ Content-Type: application/json
     "username": "host1",
     "password": "hostpassword"
 }
+
+###
+GET http://localhost:3000/host/658ad764794f7a6004fbec16
+Content-Type: application/json
+
+###
+GET http://localhost:3000/host/658ad764794f7a6004fbec16/visitors
+Content-Type: application/json

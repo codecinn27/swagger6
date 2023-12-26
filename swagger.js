@@ -86,6 +86,33 @@
 *                   description: Error message
 *                   example: Internal Server Error
 */
+/**
+ * @swagger
+ *  /showCurrentlyLogin:
+ *    get:
+ *      summary: Display user information from JWT token
+ *      tags:
+ *        - Login
+ *      security:
+ *        - Authorization: []
+ *      responses:
+ *        200:
+ *          description: Successful retrieval of user information
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  username:
+ *                    type: string
+ *                  user_id:
+ *                    type: string
+ *                    format: uuid
+ *              description: User information retrieved from JWT token
+ *        401:
+ *          description: Unauthorized - Invalid or missing token
+ */
+
 
 /**
 * @swagger

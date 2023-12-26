@@ -1,4 +1,4 @@
-const { MongoClient, ServerApiVersion, MongoCursorInUseError } = require('mongodb');
+const { MongoClient, ObjectId } = require('mongodb');
 const url = 'mongodb+srv://codecinnpro:7G5lg1qQNpzglv04@cluster0.u7w8rcg.mongodb.net/?retryWrites=true&w=majority';
 const express = require('express');
 const jwt = require('jsonwebtoken');
@@ -13,6 +13,7 @@ const dbName = 'vms1';
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
 const JWT_SECRET = 'hahaha'
+
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(url);
@@ -84,6 +85,16 @@ async function run() {
         }
     });
 
+    app.get('/showCurrentlyLogin', async(req,res)=>{
+      try{
+        const data = await showCurrentLogin(req);
+        res.json({data});
+      }catch(error){
+        console.error('Error during /showCurrentlyLogin:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+    })
+
     app.get('/admin/visits', async (req, res) => {
         try {
           const allVisits = await readVisitsData(client);
@@ -104,6 +115,29 @@ async function run() {
           res.status(500).json({ error: 'Internal Server Error' });
         }
       });
+
+    app.get('/host/:hostId', async(req,res)=>{
+      try{
+        const { hostId } = req.params;
+        const result = await getWelcomeMessageForHost(client, hostId);
+        res.status(result.status).json(result.data);
+
+      }catch (error) {
+          console.error(`Error during /host/${hostId}`, error);
+          res.status(500).json({ error: 'Internal Server Error' });
+        }
+    })
+
+    app.get('/host/:hostId/visitors',async(req,res)=>{
+      try{
+        const {hostId} = req.params;
+        const result = await showHostVisitors(client, hostId);
+        res.status(result.status).json(result.data);
+      }catch(error){
+        console.error(`Error during /host/${hostId}/visitors`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    })
 
 
   } catch (e) {
@@ -133,7 +167,7 @@ async function login( client, data) {
           if(isPasswordValid){
           
             // Generate a JWT token
-            const token = jwt.sign({ userId: user._id, category: user.category }, JWT_SECRET, {
+            const token = jwt.sign({ username: user.username, userId: user._id, category: user.category }, JWT_SECRET, {
               expiresIn: '1h',
             });
   
@@ -177,7 +211,7 @@ async function login( client, data) {
 
 async function readVisitsData(client) {
     const db = client.db(dbName);
-    const visitsCollection = db.collection(collection1);
+    const visitsCollection = db.collection(collection3);
     
     try {
         const allVisits = await visitsCollection.find({}).toArray();
@@ -226,3 +260,111 @@ async function registerHost(client, data){
   }    
 }
 
+async function getWelcomeMessageForHost(client, hostId) {
+  try {
+    // Convert the string id to ObjectId
+    const objectId = new ObjectId(hostId);
+
+    // Find the document by _id
+    const result = await client.db(dbName).collection(collection1).findOne({ _id: objectId });
+
+    if (!result) {
+      return { status: 404, data: { error: "User not found" } };
+    }
+
+    const { username } = result;
+
+    return { status: 200, data: { message: `Welcome, ${username}` } };
+  } catch (error) {
+    console.error('Error during getWelcomeMessageForHost:', error);
+    return { status: 500, data: { error: 'Internal Server Error' } };
+  }
+}
+
+async function showHostVisitors(client, hostId){
+  try {
+    // Convert the string id to ObjectId
+    const objectId = new ObjectId(hostId);
+
+    // Find the document by _id
+    const result = await client.db(dbName).collection(collection1).findOne({ _id: objectId });
+
+    if (!result) {
+      return { status: 404, data: { error: "User not found" } };
+    }
+    
+    const visitorCollection = result.visitors;
+    return {status: 200, data:{ visitorCollection}};
+  } catch (error) {
+    console.error('Error during showHostVisitors:', error);
+    return { status: 500, data: { error: 'Internal Server Error' } };
+  } 
+}
+
+async function showCurrentLogin (req){
+  // Extract the token from the Authorization header
+  const header = req.headers['authorization'];
+  
+  // check first if whether the token is present, if not the app will crash 
+  //then only do the header.split
+  // Verify the token
+  if (!header) {
+    return {status:401, data: { error: 'Unauthorized: Missing token' }};
+  }
+  //split the bearer token 
+  // take the index 1 , to exclude the bearer words
+  let token = header.split(' ')[1];
+
+  //to check whether the token pass in is what you want
+//  console.log("Token",token);
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, JWT_SECRET);;
+
+    // Log decoded information for troubleshooting
+    console.log('Decoded Token:', decoded);
+    // Attach user information to the request if needed
+    return decoded;
+  } catch (err) {
+    return {status: 403,data: { error: 'Forbidden: Invalid token' }};
+  }
+};
+
+
+async function authenticateToken(requiredRole, req){
+  // Extract the token from the Authorization header
+  const header = req.headers['authorization'];
+  
+  // check first if whether the token is present, if not the app will crash 
+  //then only do the header.split
+  // Verify the token
+  if (!header) {
+    return {status:401, data: { error: 'Unauthorized: Missing token' }};
+  }
+  //split the bearer token 
+  // take the index 1 , to exclude the bearer words
+  let token = header.split(' ')[1];
+
+  //to check whether the token pass in is what you want
+//  console.log("Token",token);
+  try {
+    // Verify the token
+    const decoded = jwt.verify(token, tokenKey);
+
+    // Log decoded information for troubleshooting
+    console.log('Decoded Token:', decoded);
+
+    // Check if the token has the required role
+    if (decoded.category !== requiredRole) {
+      return {status:403,data: { error: 'Forbidden: Insufficient permissions' }};
+    }
+
+    // Attach user information to the request if needed
+    return {status: 200,data:{decoded}};
+  } catch (err) {
+    return {status: 403,data: { error: 'Forbidden: Invalid token' }};
+  }
+};
+async function showStatus(){
+
+}
