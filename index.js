@@ -6,7 +6,7 @@ const app = express();
 const port = process.env.PORT || 3000
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
-const collection1 = 'user';
+const collection1 = 'users';
 const collection2 = 'visitors';
 const collection3 = 'visits';
 const dbName = 'vms1';
@@ -15,13 +15,7 @@ const swaggerUi = require('swagger-ui-express');
 const JWT_SECRET = 'hahaha'
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(url, {
-  serverApi: {
-    version: ServerApiVersion.v1,
-    strict: true,
-    deprecationErrors: true,
-  }
-});
+const client = new MongoClient(url);
 
 const options = {
     definition:{
@@ -80,8 +74,14 @@ async function run() {
     })
 
     app.post('/login', async (req, res) => {
-        const {username, password} = req.body;
-        await login(client, username, password);
+        try{
+            let data = req.body;
+            const status = await login(client, data);
+            res.json(status);
+        }catch(error){
+            console.error('Error during /login:', error);
+            res.status(500).json({ error: 'Internal Server Error' });
+        }
     });
 
     app.get('/admin/visits', async (req, res) => {
@@ -116,47 +116,55 @@ async function run() {
 run().catch(console.error);
 
 
-
-async function login(client, username, password) {
+async function login( client, data) {
     const db = client.db(dbName);
-    const usersCollection = db.collection(collection1);
+    const visitsCollection = db.collection(collection1);
     try {
         // Find the user in the database
-        const user = await usersCollection.findOne({ username });
-    
-        if (!user) {
+        // const userdata = await userCollection.find({});
+        // console.log(userdata);
+        const user = await visitsCollection.findOne({username: data.username});
+        if (user) {
+          console.log('User found:', user.username);
+          console.log("user pass", user.password);
+          console.log("input pass", data.password);
+          const isPasswordValid = await bcrypt.compare(data.password, user.password);
+          if(isPasswordValid){
+          
+            // Generate a JWT token
+            const token = jwt.sign({ userId: user._id, category: user.category }, JWT_SECRET, {
+              expiresIn: '1h',
+            });
+  
+            // Check the user's category and generate the appropriate link
+            let redirectLink;
+            if (user.category === 'host') {
+              redirectLink = `/host/${user._id}`;
+            } else if (user.category === 'admin') {
+              redirectLink = `/admin`;
+            }else{
+              return { status: 401, data: { error: 'Invalid category' } };;
+            }     
+  
+            console.log("JWT:", token);
+            return {
+              status: 200,
+              data: {
+                token,
+                category: user.category,
+                redirectLink,
+                Authorization: token,
+              },
+            };
+          }else{
+            return { status: 401, data: { error: 'Invalid credentials password' } };
+          }
+        }else{
+          console.log(user);
           return { status: 401, data: { error: 'Invalid credentials' } };
         }
-    
-        // Compare the provided password with the hashed password using bcrypt
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-    
-        if (!isPasswordValid) {
-          return { status: 401, data: { error: 'Invalid credentials' } };
-        }
-    
-        // Generate a JWT token
-        const token = jwt.sign({ userId: user._id, category: user.category }, JWT_SECRET, {
-          expiresIn: '1h',
-        });
-    
-        // Check the user's category and generate the appropriate link
-        let redirectLink;
-        if (user.category === 'host') {
-          redirectLink = `/host/${user._id}`;
-        } else if (user.category === 'admin') {
-          redirectLink = `/admin`;
-        }
-    
-        console.log("JWT:", token);
-        res.json( {
-          status: 200,
-          data: {
-            token,
-            category: user.category,
-            redirectLink,
-            Authorization: token,
-          }})
+
+
       } catch (error) {
         console.error('Error during login:', error);
         // Log additional information about the error
@@ -168,7 +176,7 @@ async function login(client, username, password) {
 
 async function readVisitsData(client) {
     const db = client.db(dbName);
-    const visitsCollection = db.collection(collection3);
+    const visitsCollection = db.collection(collection1);
     
     try {
         const allVisits = await visitsCollection.find({}).toArray();
@@ -179,6 +187,14 @@ async function readVisitsData(client) {
     }
 }
 
+async function encryptPassword(password) {
+  const hash = await bcrypt.hash(password, saltRounds); 
+  return hash 
+}
 
+async function decryptPassword(password, compare) {
+  const match = await bcrypt.compare(password, compare)
+  return match
+}
 
 

@@ -1,9 +1,9 @@
 const { MongoClient } = require('mongodb');
-
-const url = 'mongodb+srv://codecinnpro:7G5lg1qQNpzglv04@cluster0.u7w8rcg.mongodb.net/vms1?retryWrites=true&w=majority';
+const url = 'mongodb+srv://codecinnpro:7G5lg1qQNpzglv04@cluster0.u7w8rcg.mongodb.net/?retryWrites=true&w=majority';
 const dbName = 'vms1';
 const client = new MongoClient(url, { useUnifiedTopology: true });
-
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
 async function seedData() {
   try {
     await client.connect();
@@ -15,24 +15,25 @@ async function seedData() {
     await db.collection('visitors').deleteMany({});
     await db.collection('visits').deleteMany({});
     // Sample user data
+    const hash = await bcrypt.hash("adminpassword", 10); 
     const user = {
-      username: 'admin1',
-      password: 'adminpassword',
-      email: 'admin@example.com',
+      username: "admin1",
+      password: hash,
+      email: "admin@example.com",
       phoneNumber: 1234567890,
-      category: 'admin',
+      category: "admin",
       visitors: [],
     };
 
     // Sample visitor data
     const visitor1 = {
-      name: 'Visitor434',
+      name: "Visitor123",
       phoneNumber: 1234567890,
       visits: [],
     };
 
     const visit1 = {
-      purposeOfVisit: 'Meeting',
+      purposeOfVisit: "Meeting",
       visitTime: new Date('2023-01-01T10:00:00Z'),
     };
 
@@ -50,24 +51,25 @@ async function seedData() {
     await db.collection('visits').insertOne(visit1);
     await db.collection('visitors').updateOne({ _id: visitor1Result.insertedId }, { $set: { visits: visitor1.visits } });
     // Sample host user data
+    const ePass2 = await encryptPassword('hostpassword');
     const hostUser = {
-        username: 'host1',
-        password: 'hostpassword',
-        email: 'host@example.com',
+        username: "host1",
+        password: ePass2,
+        email: "host@example.com",
         phoneNumber: 9876543210,
-        category: 'host',
+        category: "host",
         visitors: [],
     };
 
     // Sample visitor data for host
     const visitor2 = {
-        name: 'Visitor2',
+        name: "Visitor2",
         phoneNumber: 1234567890,
         visits: [],
     };
 
     const visit2 = {
-        purposeOfVisit: 'Interview',
+        purposeOfVisit: "Interview",
         visitTime: new Date('2023-01-01T15:00:00Z'),
     };
 
@@ -92,6 +94,10 @@ async function seedData() {
     // Disconnect from the database after seeding
     await client.close();
   }
+}
+async function encryptPassword(password) {
+  const hash = await bcrypt.hash(password, saltRounds); 
+  return hash; 
 }
 
 // Call the seedData function to populate the database
