@@ -8,11 +8,13 @@ const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const collection1 = 'users';
 const collection2 = 'visitors';
-const collection3 = 'visits';
+const collection3 = 'visitors_pass';
 const dbName = 'vms1';
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const JWT_SECRET = 'hahaha'
+const JWT_SECRET = 'hahaha';
+const role1 = 'admin';
+const role2 = 'host';
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -95,17 +97,17 @@ async function run() {
     }
     })
 
-    app.get('/admin/visits', async (req, res) => {
+    app.get('/admin/visits',authenticateAdmin,async (req, res) => {
         try {
           const allVisits = await readVisitsData(client);
-          res.json(allVisits);
+          res.status(200).json(allVisits);  // Set the status code explicitly
         } catch (error) {
           console.error('Error during /admin/visits:', error);
           res.status(500).json({ error: 'Internal Server Error' });
         }
     });
 
-    app.post('/admin/registerHost', async (req, res) => {
+    app.post('/admin/registerHost', authenticateAdmin,async (req, res) => {
         try {
           let data = req.body;
           const result = await registerHost(client, data);
@@ -116,9 +118,14 @@ async function run() {
         }
       });
 
-    app.get('/host/:hostId', async(req,res)=>{
+    app.get('/host/:hostId', authenticateHost,async(req,res)=>{
       try{
         const { hostId } = req.params;
+
+            // Check if hostId is a valid ObjectId
+        if (!ObjectId.isValid(hostId)) {
+          return res.status(400).json({ error: 'Invalid hostId format' });
+        }
         const result = await getWelcomeMessageForHost(client, hostId);
         res.status(result.status).json(result.data);
 
@@ -128,7 +135,7 @@ async function run() {
         }
     })
 
-    app.get('/host/:hostId/visitors',async(req,res)=>{
+    app.get('/host/:hostId/visitors', authenticateHost,async(req,res)=>{
       try{
         const {hostId} = req.params;
         const result = await showHostVisitors(client, hostId);
@@ -320,26 +327,29 @@ async function showCurrentLogin (req){
   try {
     // Verify the token
     const decoded = jwt.verify(token, JWT_SECRET);;
-
+    const data = {
+      currentLogin: decoded, // Wrap the decoded token inside an object
+    };
     // Log decoded information for troubleshooting
     console.log('Decoded Token:', decoded);
     // Attach user information to the request if needed
-    return decoded;
+    return data;
   } catch (err) {
     return {status: 403,data: { error: 'Forbidden: Invalid token' }};
   }
 };
 
 
-async function authenticateToken(requiredRole, req){
+function authenticateAdmin(req,res,next){
   // Extract the token from the Authorization header
-  const header = req.headers['authorization'];
+  const header = req.headers.authorization;
   
   // check first if whether the token is present, if not the app will crash 
   //then only do the header.split
   // Verify the token
+
   if (!header) {
-    return {status:401, data: { error: 'Unauthorized: Missing token' }};
+    res.status(401).json({error: 'Unauthorized: Missing token'});
   }
   //split the bearer token 
   // take the index 1 , to exclude the bearer words
@@ -347,24 +357,57 @@ async function authenticateToken(requiredRole, req){
 
   //to check whether the token pass in is what you want
 //  console.log("Token",token);
-  try {
     // Verify the token
-    const decoded = jwt.verify(token, tokenKey);
+    jwt.verify(token, JWT_SECRET, function(err, decoded){
 
-    // Log decoded information for troubleshooting
-    console.log('Decoded Token:', decoded);
-
-    // Check if the token has the required role
-    if (decoded.category !== requiredRole) {
-      return {status:403,data: { error: 'Forbidden: Insufficient permissions' }};
-    }
-
-    // Attach user information to the request if needed
-    return {status: 200,data:{decoded}};
-  } catch (err) {
-    return {status: 403,data: { error: 'Forbidden: Invalid token' }};
-  }
+      if(err){
+        res.status(403).json({error:'Invalid token'});
+        
+      }else{
+        // Check if the token has the required role
+        if (decoded.category !== role1) {
+          res.status(403).json({error: 'Forbidden: Insufficient permissions'})
+        }
+        // Log decoded information for troubleshooting
+        console.log('Decoded Token:', decoded);
+        return next();
+      }
+    });
+  
 };
-async function showStatus(){
 
-}
+function authenticateHost(req,res,next){
+  // Extract the token from the Authorization header
+  const header = req.headers.authorization;
+  
+  // check first if whether the token is present, if not the app will crash 
+  //then only do the header.split
+  // Verify the token
+
+  if (!header) {
+    res.status(401).json({error: 'Unauthorized: Missing token'});
+  }
+  //split the bearer token 
+  // take the index 1 , to exclude the bearer words
+  let token = header.split(' ')[1];
+
+  //to check whether the token pass in is what you want
+//  console.log("Token",token);
+    // Verify the token
+    jwt.verify(token, JWT_SECRET, function(err, decoded){
+
+      if(err){
+        res.status(403).json({error:'Invalid token'});
+        
+      }else{
+        // Check if the token has the required role
+        if (decoded.category !== role2) {
+          res.status(403).json({error: 'Forbidden: Insufficient permissions'})
+        }
+        // Log decoded information for troubleshooting
+        console.log('Decoded Token:', decoded);
+        return next();
+      }
+    });
+  
+};

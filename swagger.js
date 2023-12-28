@@ -122,6 +122,8 @@
 *     description: Retrieve all visit data 
 *     tags: 
 *       - Admin
+*     security:
+*       - Authorization: []
 *     responses:
 *       200:
 *         description: Successful operation
@@ -183,27 +185,87 @@
  *       500:
  *         description: Internal Server Error
  * 
- * definitions:
- *   HostRegistration:
- *     type: object
- *     properties:
- *       username:
- *         type: string
- *         description: Host's username
- *         example: john_doe
- *       password:
- *         type: string
- *         description: Host's password
- *         example: my_secure_password
- *       email:
- *         type: string
- *         description: Host's email
- *         example: john@example.com
- *       phoneNumber:
- *         type: number
- *         description: Host's phone number
- *         example: 1234567890
+ * components:
+ *   schemas:
+ *     HostRegistration:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: Host's username
+ *           example: john_doe
+ *         password:
+ *           type: string
+ *           description: Host's password
+ *           example: my_secure_password
+ *         email:
+ *           type: string
+ *           description: Host's email
+ *           example: john@example.com
+ *         phoneNumber:
+ *           type: number
+ *           description: Host's phone number
+ *           example: 1234567890
  */
+
+
+/**
+ * @swagger
+ * /admin/dump:
+ *   get:
+ *     summary: Retrieve all data for admin
+ *     description: |
+ *       Retrieves data from the database for admin purposes.
+ *       This endpoint is only accessible to admin users.
+ *     tags:
+ *       - Admin
+ *     security:
+ *       - Authorization: []
+ *     responses:
+ *       200:
+ *         description: This endpoint is only accessible to admin users.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 Host:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/User'
+ *                 Visitors:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Visitor'
+ *                 Visitor_Passes:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Visit'
+ *       401:
+ *         description: Unauthorized. Please login.
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: Unauthorized. Please login.
+ *       403:
+ *         description: Forbidden - User does not have admin rights
+ *         content:
+ *           text/plain:
+ *             schema:
+ *               type: string
+ *               example: Forbidden - User does not have admin rights
+ *       500:
+ *         description: Internal server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#components/schemas/errormessage'
+ */
+
+// Add your components definitions here
+
+// Add your other Swagger paths, definitions, etc.
 
 
 /**
