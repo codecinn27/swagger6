@@ -118,7 +118,7 @@ async function run() {
         }
       });
 
-    app.get('/host/:hostId', authenticateHost,async(req,res)=>{
+    app.get('/host/:hostId',authenticateHost ,async(req,res)=>{
       try{
         const { hostId } = req.params;
 
@@ -138,6 +138,7 @@ async function run() {
     app.get('/host/:hostId/visitors', authenticateHost,async(req,res)=>{
       try{
         const {hostId} = req.params;
+        console.log(hostId);
         const result = await showHostVisitors(client, hostId);
         res.status(result.status).json(result.data);
       }catch(error){
@@ -401,7 +402,7 @@ function authenticateHost(req,res,next){
         
       }else{
         // Check if the token has the required role
-        if (decoded.category !== role2) {
+        if (decoded.category !== 'host') {
           res.status(403).json({error: 'Forbidden: Insufficient permissions'})
         }
         // Log decoded information for troubleshooting
