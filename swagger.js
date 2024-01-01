@@ -211,11 +211,11 @@
 
 /**
  * @swagger
- * /admin/dump:
+ * /admin/dumpHost:
  *   get:
- *     summary: Retrieve all data for admin
+ *     summary: Retrieve all host data for admin
  *     description: |
- *       Retrieves data from the database for admin purposes.
+ *       Retrieves host data from the database for admin purposes.
  *       This endpoint is only accessible to admin users.
  *     tags:
  *       - Admin
@@ -233,14 +233,7 @@
  *                   type: array
  *                   items:
  *                     $ref: '#/components/schemas/User'
- *                 Visitors:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Visitor'
- *                 Visitor_Passes:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/Visit'
+ *                 
  *       401:
  *         description: Unauthorized. Please login.
  *         content:
@@ -259,9 +252,11 @@
  *         description: Internal server error
  *         content:
  *           application/json:
- *             schema:
- *               $ref: '#components/schemas/errormessage'
+ *             example:
+ *              status: 500
+ *              error: 'Internal Server Error'
  */
+
 
 // Add your components definitions here
 
@@ -335,23 +330,96 @@
 
 /**
  * @swagger
+ * /host/{hostId}/issueVisitor:
+ *   post:
+ *     security:
+ *       - Authorization: []
+ *     summary: Issue a visitor for a host
+ *     description: This endpoint allows hosts to issue a visitor.
+ *     tags:
+ *       - Host
+ *     parameters:
+ *       - in: path
+ *         name: hostId
+ *         description: ID of the host
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               visitorName:
+ *                 type: string
+ *                 description: Name of the visitor.
+ *               visitorPhoneNumber:
+ *                 type: number
+ *                 format: number
+ *                 description: Phone number of the visitor.
+ *               destination:
+ *                 type: string
+ *                 description: 5, Jalan Oz 7
+ *             required:
+ *               - visitorName
+ *               - visitorPhoneNumber
+ *               - destination
+ *     responses:
+ *       200:
+ *         description: Successful operation
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: 200
+ *               data: 'Visitor issued successfully'
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: 401
+ *               error: |
+ *                 Unauthorized: Missing or invalid token
+ *       403:
+ *         description: Forbidden
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: 403
+ *               error: |
+ *                 Forbidden: Insufficient permissions
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             example:
+ *               status: 500
+ *               error: 'Internal Server Error'
+ */
+
+
+
+/**
+ * @swagger
  * components:
  *   schemas:
  *     Visit:
  *       type: object
  *       required:
- *         - purposeOfVisit
+ *         - destination
  *         - phoneNumber
  *       properties:
- *         purposeOfVisit:
+ *         destination:
  *           type: string
- *           description: The purpose of the visit
+ *           description: The destination of the visit
  *         visitTime:
  *           type: string
  *           format: date-time
  *           description: The time of the visit
  *       example:
- *         purposeOfVisit: Meeting
+ *         destination: 6464,Jalan Tuah 5
  *
  *     Visitor:
  *       type: object
@@ -373,7 +441,7 @@
  *         name: John Doe
  *         phoneNumber: 1234567890
  *         visits:
- *           - purposeOfVisit: Meeting
+ *           - destination: 5,Jalan Oz 5
  *             visitTime: '2023-01-01T12:00:00Z'
  *
  *     User:
@@ -417,7 +485,7 @@
  *         visitors:
  *           - name: John Doe
  *             visits:
- *               - purposeOfVisit: Meeting
+ *               - destination: 5, Jalan Oz 8
  *                 phoneNumber: 1234567890
  *                 visitTime: '2023-01-01T12:00:00Z'
  */

@@ -15,6 +15,7 @@ const swaggerUi = require('swagger-ui-express');
 const JWT_SECRET = 'hahaha';
 const role1 = 'admin';
 const role2 = 'host';
+const cors = require('cors');
 
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -118,11 +119,23 @@ async function run() {
         }
       });
 
+    app.get('/admin/dumpHost', authenticateAdmin, async(req,res)=>{
+      try {
+        const allHost = await readHostData(client);
+        res.status(200).json(allHost);  // Set the status code explicitly
+      } catch (error) {
+        console.error('Error during /admin/dumpHost:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    })
+
+    
+
     app.get('/host/:hostId',authenticateHost ,async(req,res)=>{
       try{
         const { hostId } = req.params;
 
-            // Check if hostId is a valid ObjectId
+        // Check if hostId is a valid ObjectId
         if (!ObjectId.isValid(hostId)) {
           return res.status(400).json({ error: 'Invalid hostId format' });
         }
@@ -139,6 +152,9 @@ async function run() {
       try{
         const {hostId} = req.params;
         console.log(hostId);
+        if (!ObjectId.isValid(hostId)) {
+          return res.status(400).json({ error: 'Invalid hostId format' });
+        }
         const result = await showHostVisitors(client, hostId);
         res.status(result.status).json(result.data);
       }catch(error){
@@ -146,6 +162,25 @@ async function run() {
         res.status(500).json({ error: 'Internal Server Error' });
       }
     })
+    app.post('/host/:hostId/issueVisitor', authenticateHost, async (req, res) => {
+      try {
+        const { hostId } = req.params;
+        const data = req.body;
+    
+        // Validate that id is a valid ObjectId
+        if (!ObjectId.isValid(hostId)) {
+          return res.status(400).json({ error: 'Invalid hostId format' });
+        }
+        console.log('Request Body:', data);
+        // Call the function to issue a visitor
+        const result = await issueVisitorForHost(client, hostId,data);
+    
+        res.status(result.status).json(result.data);
+      } catch (error) {
+        console.error(`Error during /host/:hostId/issueVisitor`, error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
 
 
   } catch (e) {
@@ -188,7 +223,7 @@ async function login( client, data) {
             }else{
               return { status: 401, data: { error: 'Invalid category' } };;
             }     
-  
+            const allHost = await readHostData(client);
             console.log("JWT:", token);
             return {
               status: 200,
@@ -196,7 +231,7 @@ async function login( client, data) {
                 token,
                 category: user.category,
                 redirectLink,
-                Authorization: token,
+                Host: allHost
               },
             };
           }else{
@@ -228,6 +263,19 @@ async function readVisitsData(client) {
         console.error('Error fetching visits:', error);
         throw new Error('Internal Server Error');
     }
+}
+
+async function readHostData(client) {
+  const db = client.db(dbName);
+  const hostCollection = db.collection(collection1);
+  
+  try {
+      const allVisits = await hostCollection.find({category:"host"}).toArray();
+      return allVisits;
+  } catch (error) {
+      console.error('Error fetching visits:', error);
+      throw new Error('Internal Server Error');
+  }
 }
 
 async function encryptPassword(password) {
@@ -412,3 +460,58 @@ function authenticateHost(req,res,next){
     });
   
 };
+
+async function issueVisitorForHost(client, hostId, data) {
+  
+  try{
+    const {visitorName, visitorPhoneNumber, destination} = data;
+    const hostUser = await client.db(dbName).collection(collection1).findOne({ _id: ObjectId(hostId), category: role2 });
+
+    // Create a new visit
+    const visit = {
+      destination: destination,
+      visitTime: new Date(),
+      from: null,
+    };
+
+    if (!hostUser) {
+      return { status: 404, data: { error: 'Host not found' } };
+    }
+    const existingVisitor = await client.db(dbName).collection(collection2).findOne({name: visitorName});
+    if(existingVisitor){
+      existingVisitor.visit_pass.push(visit);
+      visit.from = existingVisitor._id;
+      await client.db(dbName).collection(collection3).insertOne(visit);
+      await client.db(dbName).collection(collection2).updateOne({ _id: existingVisitor._id}, { $push: { visit_pass: visit } });
+      await client.db(dbName).collection(collection1).updateOne({_id: hostUser._id},{$push:{visitors: existingVisitor}});
+      return { status: 200, data: `Visitor ${existingVisitor.name} issued successfully for host ${hostId}` };
+    }
+
+    // Create a new visitor
+    const visitor = {
+      name: visitorName,
+      phoneNumber: visitorPhoneNumber,
+      visit_pass: [],
+    };
+
+    
+    
+    // Connect the visitor data to the host user schema
+    hostUser.visitors.push(visitor);
+    // Save the visitor data to the database
+    const visitorResult = await client.db(dbName).collection(collection2).insertOne(visitor);
+
+    // Update the visitor with the visit ID
+    visitor.visit_pass.push(visit);
+    visit.from = visitor._id;
+    // Save the visitor and visit data to the database
+    await client.db(dbName).collection(collection3).insertOne(visit);
+    await client.db(dbName).collection(collection2).updateOne({ _id: visitorResult.insertedId }, { $set: { visit_pass: visitor.visit_pass } });
+
+    
+    return { status: 200, data: `Visitor ${visitorName} issued successfully for host ${hostId}` };
+  } catch (error) {
+    console.error('Error issuing visitor:', error);
+    return { status: 500, data: { error: 'Internal Server Error' } };
+  }
+}

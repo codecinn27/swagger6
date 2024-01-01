@@ -36,7 +36,7 @@ async function seedData() {
     };
 
     const visit1 = {
-      purposeOfVisit: "Meeting",
+      destination: "6, Jalan Oz 7",
       visitTime: new Date('2023-01-01T10:00:00Z'),
       from:null
     };
@@ -74,7 +74,7 @@ async function seedData() {
     };
 
     const visit2 = {
-        purposeOfVisit: "Interview",
+        destination: "5, Jalan Oz 6",
         visitTime: new Date('2023-01-01T15:00:00Z'),
         from:null
     };
