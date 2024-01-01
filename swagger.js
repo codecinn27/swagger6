@@ -38,12 +38,6 @@
 *             schema: 
 *               type: object    
 *               properties:
-*                 username: 
-*                   type: string
-*                   description: Username
-*                 message:
-*                   type: string
-*                   description: Success message
 *                 token: 
 *                   type: string
 *                   description: JWT token for authentication
@@ -53,6 +47,9 @@
 *                 redirectLink:
 *                   type: string
 *                   description: Redirect link based on user category
+*                 Host: 
+*                   type: object
+*                   description: Display all host is category is admin
 *       401:
 *         description: Unauthorized - Wrong password
 *         content:
@@ -112,6 +109,45 @@
  *        401:
  *          description: Unauthorized - Invalid or missing token
  */
+
+/**
+ * @swagger
+ * /retrieveContact/{id}:
+ *    post:
+ *      summary: Display display visitor's phone number based on the visitor pass Id input
+ *      tags:
+ *        - Login
+ *      security:
+ *        - Authorization: []
+ *      parameters:
+ *          - in: path
+ *            name: id
+ *            description: Object id of the visitor pass
+ *            required: true
+ *            schema: 
+ *              type: string
+ *      responses:
+ *        200:
+ *          description: Successful retrieval of visitor pass information
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  visitorName:
+ *                    type: string
+ *                    example: Visitor23
+ *                  destination:
+ *                    type: string
+ *                    example: 3, jalan oz 43
+ *                  visitTime:
+ *                    type: string
+ *                    format: date-time        
+ *              description: Visitor information retrieved from visitor pass
+ *        401:
+ *          description: Unauthorized - Invalid or missing token
+ */
+
 
 
 /**

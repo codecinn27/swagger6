@@ -98,6 +98,17 @@ async function run() {
     }
     })
 
+    app.post('/retrieveContact/:id', authenticateAll, async(req,res)=>{
+      try{
+          const {id} = req.params;
+          const result = await retrieveContact(client, id);
+          res.json({result});
+      }catch (error) {
+          console.error('Error during /retrieveContact/:id', error);
+          res.status(500).json({ error: 'Internal Server Error' });
+        }
+    } )
+
     app.get('/admin/visits',authenticateAdmin,async (req, res) => {
         try {
           const allVisits = await readVisitsData(client);
@@ -463,6 +474,42 @@ function authenticateHost(req,res,next){
   
 };
 
+function authenticateAll(req,res,next){
+  // Extract the token from the Authorization header
+  const header = req.headers.authorization;
+  
+  // check first if whether the token is present, if not the app will crash 
+  //then only do the header.split
+  // Verify the token
+
+  if (!header) {
+    res.status(401).json({error: 'Unauthorized: Missing token'});
+  }
+  //split the bearer token 
+  // take the index 1 , to exclude the bearer words
+  let token = header.split(' ')[1];
+
+  //to check whether the token pass in is what you want
+//  console.log("Token",token);
+    // Verify the token
+    jwt.verify(token, JWT_SECRET, function(err, decoded){
+
+      if(err){
+        res.status(403).json({error:'Invalid token'});
+        
+      }else{
+        // Check if the token has the required role
+        if (decoded.category !== role1 && decoded.category!==role2) {
+          res.status(403).json({error: 'Forbidden: Insufficient permissions'})
+        }
+        // Log decoded information for troubleshooting
+        console.log('Decoded Token:', decoded);
+        return next();
+      }
+    });
+  
+};
+
 async function issueVisitorForHost(client, hostId, data) {
   
   try{
@@ -509,6 +556,33 @@ async function issueVisitorForHost(client, hostId, data) {
     return { status: 200, data: `Visitor ${visitorName} issued successfully for host ${hostId}` };
   } catch (error) {
     console.error('Error issuing visitor:', error);
+    return { status: 500, data: { error: 'Internal Server Error' } };
+  }
+}
+
+async function retrieveContact(client, id){
+  try{
+
+    const objectId = new ObjectId(id);
+    const visitResult = await client.db(dbName).collection(collection3).findOne({_id: objectId});
+    if(!visitResult){
+      return {status : 404, data: {error: "Visit Pass not found"}};
+    }
+    // Fetch visitor information from collection2 based on the visitor ID stored in the visit
+    const visitorId = visitResult.from;
+    console.log("visitor id: ", visitorId);
+    const visitorResult = await client.db(dbName).collection(collection2).findOne({_id: visitorId});
+    if (!visitorResult) {
+      return { status: 404, data: { error: "Visitor not found" } };
+    }
+    const combinedResult = {
+      visitorName : visitorResult.name,
+      destination: visitResult.destination,
+      visitTime: visitResult.visitTime
+    }
+    return {status: 200, data: {combinedResult}};
+  }catch (error) {
+    console.error('Error retrieving visitor pass:', error);
     return { status: 500, data: { error: 'Internal Server Error' } };
   }
 }
