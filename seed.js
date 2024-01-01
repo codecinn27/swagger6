@@ -1,5 +1,5 @@
 const { MongoClient } = require('mongodb');
-const url = 'mongodb+srv://codecinnpro:7G5lg1qQNpzglv04@cluster0.u7w8rcg.mongodb.net/?retryWrites=true&w=majority';
+const url = process.env.ATLAS_URI;
 const dbName = 'vms1';
 const client = new MongoClient(url, { useUnifiedTopology: true });
 const bcrypt = require('bcrypt');
