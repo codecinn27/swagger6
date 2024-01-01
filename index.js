@@ -197,6 +197,7 @@ run().catch(console.error);
 async function login( client, data) {
     const db = client.db(dbName);
     const visitsCollection = db.collection(collection1);
+    let allHost; // Declare allHost outside the conditional blocks
     try {
         // Find the user in the database
         // const userdata = await userCollection.find({});
@@ -218,12 +219,13 @@ async function login( client, data) {
             let redirectLink;
             if (user.category === 'host') {
               redirectLink = `/host/${user._id}`;
+              allHost = 'Insufficient permissions';
             } else if (user.category === 'admin') {
               redirectLink = `/admin`;
+              allHost = await readHostData(client);
             }else{
               return { status: 401, data: { error: 'Invalid category' } };;
             }     
-            const allHost = await readHostData(client);
             console.log("JWT:", token);
             return {
               status: 200,
@@ -493,11 +495,6 @@ async function issueVisitorForHost(client, hostId, data) {
       phoneNumber: visitorPhoneNumber,
       visit_pass: [],
     };
-
-    
-    
-    // Connect the visitor data to the host user schema
-    hostUser.visitors.push(visitor);
     // Save the visitor data to the database
     const visitorResult = await client.db(dbName).collection(collection2).insertOne(visitor);
 
@@ -507,7 +504,7 @@ async function issueVisitorForHost(client, hostId, data) {
     // Save the visitor and visit data to the database
     await client.db(dbName).collection(collection3).insertOne(visit);
     await client.db(dbName).collection(collection2).updateOne({ _id: visitorResult.insertedId }, { $set: { visit_pass: visitor.visit_pass } });
-
+    await client.db(dbName).collection(collection1).updateOne({_id: hostUser._id},{$push: {visitors:visitor}});
     
     return { status: 200, data: `Visitor ${visitorName} issued successfully for host ${hostId}` };
   } catch (error) {
