@@ -1,5 +1,6 @@
+require("dotenv").config();
 const { MongoClient, ObjectId } = require('mongodb');
-const url = process.env.ATLAS_URI;
+const url = process.env.ATLAS_URI || process.env.mongoUrl;
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const app = express();
@@ -12,7 +13,7 @@ const collection3 = 'visitors_pass';
 const dbName = 'vms1';
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
-const JWT_SECRET = 'hahaha';
+const JWT_SECRET = process.env.JWT_SECRET;
 const role1 = 'admin';
 const role2 = 'host';
 const cors = require('cors');
@@ -312,10 +313,10 @@ async function registerHost(client, data){
     if (existingUser){
       return {status:400 , data: { error: 'Username already exists' }};
     }
-
+    const hash = await bcrypt.hash(password,10);
     await client.db(dbName).collection(collection1).insertOne({
       username,
-      password,
+      password: hash,
       email,
       phoneNumber,
       category: "host",
