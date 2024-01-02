@@ -1,6 +1,6 @@
-require("dotenv").config();
+// require("dotenv").config();
 const { MongoClient, ObjectId } = require('mongodb');
-const url = process.env.ATLAS_URI || process.env.mongoUrl ;
+const url = process.env.ATLAS_URI  ;
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const app = express();
