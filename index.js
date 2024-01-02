@@ -1,4 +1,4 @@
-// require("dotenv").config();
+require("dotenv").config();
 const { MongoClient, ObjectId } = require('mongodb');
 const url = process.env.ATLAS_URI  ;
 const express = require('express');
@@ -58,6 +58,7 @@ const options = {
     apis:["./swagger.js"],
 };
 const spacs = swaggerJSDoc(options);
+app.use(cors());
 app.use("/g6", swaggerUi.serve, swaggerUi.setup(spacs));
 
 
