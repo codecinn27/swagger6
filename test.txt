@@ -1,190 +1,39 @@
-
-async function encryptPassword(password) {
-    const hash = await bcrypt.hash(password, saltRounds); 
-    return hash 
-  }
-  
-  async function decryptPassword(password, compare) {
-    const match = await bcrypt.compare(password, compare)
-    return match
-  }
-
-async function read(client, data) {
-  if(data.role == 'Admin') {
-    Admins = await client.db('visitor-management-system').collection('Users').find({role:"Admin"}).next() //.next to read in object instead of array
-    Hosts = await client.db('visitor-management-system').collection('Users').find({role:"Host"}).toArray()
-    Visitors = await client.db('visitor-management-system').collection('Users').find({role:"Visitor"}).toArray()
-    Records = await client.db('visitor-management-system').collection('Records').find().next()
-    return {Admins, Hosts, Visitors, Records}
-    }
-
-  if (data.role == 'Host') {
-    Host = await client.db('visitor-management-system').collection('Users').findOne({username: data.username})
-    Visitors = await client.db('visitor-management-system').collection('Users').find({host: data.username}).toArray()   
-    Records = await client.db('visitor-management-system').collection('Records').find({username: {$in:Host.visitors}}).toArray()
-    return {Host, Visitors, Records}
-    }
-
-  if (data.role == 'Visitor') {
-    Visitor = await client.db('visitor-management-system').collection('Users').findOne({username: data.username})
-    Records = await client.db('visitor-management-system').collection('Records').find({recordID: {$in:Visitor.records}}).toArray()
-    return {Visitor, Records}
-  }
-}
-
-async function update(client, data, data1){
-  if (data1.password) {
-    data1.password = await encryptPassword(data1.password)
-  }
-  result = await client.db("visitor-management-system").collection("Users").updateOne({username: data.username}, {$set: data1});
-  return "Update Successfully"
-}
-
-async function deleteUser(client, data) {
-  result = await client.db("visitor-management-system").collection("Users").deleteOne({username: data.username})
-  result = await client.db("visitor-management-system").collection("Records").deleteMany({username: data.username})
-  result = await client.db("visitor-management-system").collection("Users").updateOne(
-    {username: data.host},
-    {$pull:{visitors: data.username}
-  })
-  return "Delete Successfully"
-}
-
-async function checkIn(client, data, data1) {
-  temporary = await client.db('visitor-management-system').collection('Users').findOne({recordID: data1.recordID})
-  if(!temporary) {
-    if(data.role == 'Visitor') {
-      temporary = await client.db('visitor-management-system').collection('Users').findOne({username: data.username})
-      if(temporary.currentCheckIn) {
-        return 'Already checked in, please check out first!!!'
-      } else {
-        result = await client.db("visitor-management-system").collection("Records").insertOne(
-          { username: data.username,
-          recordID: data1.recordID,
-          purpose: data1.purpose,
-          checkInTime: new Date()
-        })
-
-        result = await client.db("visitor-management-system").collection("Users").updateOne(
-          {username: data.username}, {$set:{ currentCheckIn: data1.recordID }
-          })
-
-        result = await client.db("visitor-management-system").collection("Users").updateOne(
-          {username: data.username},
-          {$push:{records: data1.recordID }
-        })  
-
-        return (`You have checked in at '${new Date()}'`)
-      }
-    } else {
-      return 'Only visitor can access to check in'
-    }
-  } else {
-    return 'recordID in use, please enter another recordID'
-  }
-}
-
-async function checkOut(client, data) {
-  temporary = await client.db('visitor-management-system').collection('Users').findOne({username: data.username})
-  if(temporary.currentCheckIn) {
-    result = await client.db("visitor-management-system").collection("Records").updateOne(
-      {recordID: temporary.currentCheckIn},
-      {$set:{ checkOutTime: new Date() }}
-    )
-
-    result = await client.db("visitor-management-system").collection("Users").updateOne(
-      {username: temporary.username}, {$unset:{ currentCheckIn: 1 }}
-    )
-    return (`You have checked out at '${new Date()}'`)
-  } else {
-    return 'You have not checked in yet, please check in first!!!'
-  }
-}
-
-function output(data) {
-  if(data == 'Admin') {
-    return "You are logged in as Admin\n You can:\n 1.Register Host\n 2. Read All Users and Records"
-  } else if (data == 'Host') {
-    return "You are logged in as Host\n You can:\n 1.Register Visitor\n 2. Check My Data, My Visitors and Their Records' Data\n 3. Update My Data\n 4. Delete My Data\n"
-  } else if (data == 'Visitor') {
-    return "You are logged in as Visitor\n You can:\n 1. Check My Data and My Records\n 3. Update My Data\n 4. Check In\n 5. Check Out\n 6. Delete My Data"
-  }
-}
-
-//to verify JWT Token
-function verifyToken(req, res, next){
-  let header = req.headers.authorization
-  //to paste it in the cmd
-
-  //split the bearer token 
-  // take the index 1 , to exclude the bearer words
-  let token = header.split(' ')[1];
-  // secret verify must be same with secret in the generated
-  jwt.verify(token, 'mypassword', function(err, decoded){
-      if(err){
-          res.send('Invalid token')
-      }
-      //so that can return req.user to use in the client 
-      req.user = decoded
-      next()
-  });
-}
-
-//To generate token
-function generateToken(userProfile){
-  return jwt.sign(
-  userProfile,    //this is an obj
-  'mypassword',           //password
-  { expiresIn: '1h' });  //expires after 1 hour
-}
-
-//To generate token
-function generateToken(userProfile){
-  return jwt.sign(
-  userProfile,    //this is an obj
-  'mypassword',           //password
-  { expiresIn: '1h' });  //expires after 1 hour
-}
-
-    app.post('/registerAdmin', async (req, res) => {
-    let data = req.body
-    res.send(await registerAdmin(client, data))
-    }) 
-
-
-
-    app.post('/register', verifyToken, async (req, res) => {
-      let data = req.user,
-      data1 = req.body
-      res.send(await register(client, data, data1))
-    }) 
-
-    async function registerHost(client, hostData) {
-    const db = client.db(dbName);
-    const usersCollection = db.collection(collection1);
-    
-    try {
-        // Check if the username is unique
-        const existingUser = await usersCollection.findOne({ username: hostData.username });
-        if (existingUser) {
-        return { status: 400, message: 'Username already exists' };
-        }
-    
-        // Create a new host
-        const newHost = {
-        username: hostData.username,
-        password: hostData.password,
-        email: hostData.email,
-        phoneNumber: hostData.phoneNumber,
-        category: 'host',
-        };
-    
-        // Save the new host to the database
-        await usersCollection.insertOne(newHost);
-    
-        return { status: 201, message: 'Host registered successfully' };
-    } catch (error) {
-        console.error('Error registering host:', error);
-        throw new Error('Internal Server Error');
-    }
-}
+/**
+ * @swagger
+ * /admin/editHost
+ *   post: 
+ *      summary: Edit host information
+ *      description: Admin able to change username, email, password,phoneNumber
+ *      tags:
+ *          - Admin
+ *      security:
+ *          - Authorization: []
+ *      requestBody:
+ *          required: true
+ *          content: 
+ *              application/json:
+ *                  schema: 
+ *                      type: object
+ *                          username:
+ *                              type: string
+ *                          password:
+ *                              type: string
+ *                          email:
+ *                              type: string
+ *                          phoneNumber:
+ *                              type: Number
+ *      responses:
+ *          200:
+ *              description: Successfully edit host details
+ *              content: 
+ *                  application/json:
+ *                      schema:
+ *                          type: string
+ *                          example: Details changed
+ *          401:
+ *              description: Unauthorized - Invalid or missing token
+ *          403:
+ *              description: Forbidden - Insufficient permissions
+ *          500:
+ *              description: Internal Server Error
+ */

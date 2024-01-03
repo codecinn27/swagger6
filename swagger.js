@@ -18,7 +18,7 @@
 *     summary: Login for admin or host
 *     description: Authenticate a user and generate a JWT token
 *     tags: 
-*       - Login
+*       - Public
 *     requestBody:
 *       required: true
 *       content: 
@@ -83,13 +83,15 @@
 *                   description: Error message
 *                   example: Internal Server Error
 */
+
+
 /**
  * @swagger
  *  /showCurrentlyLogin:
  *    get:
  *      summary: Display user information from JWT token
  *      tags:
- *        - Login
+ *        - Public
  *      security:
  *        - Authorization: []
  *      responses:
@@ -112,17 +114,17 @@
 
 /**
  * @swagger
- * /retrieveContact/{id}:
- *    post:
- *      summary: Display display visitor's phone number based on the visitor pass Id input
- *      tags:
- *        - Login
+ * /retrievePass/{visitor_id}:
+ *    get:
+ *      summary: Give the visitor pass
  *      security:
  *        - Authorization: []
+ *      tags:
+ *        - Public
  *      parameters:
  *          - in: path
- *            name: id
- *            description: Object id of the visitor pass
+ *            name: visitor_id
+ *            description: visitor id
  *            required: true
  *            schema: 
  *              type: string
@@ -132,17 +134,10 @@
  *          content:
  *            application/json:
  *              schema:
- *                type: object
- *                properties:
- *                  visitorName:
- *                    type: string
- *                    example: Visitor23
- *                  destination:
- *                    type: string
- *                    example: 3, jalan oz 43
- *                  visitTime:
- *                    type: string
- *                    format: date-time        
+ *                   qrCodeUrl:
+ *                   type: string
+ *                   format: uri
+ *                   description: URL to the generated QR code    
  *              description: Visitor information retrieved from visitor pass
  *        401:
  *          description: Unauthorized - Invalid or missing token
@@ -152,7 +147,7 @@
 
 /**
 * @swagger
-* /admin/visits:
+* /admin/visitors:
 *   get:
 *     summary: Get all visits data 
 *     description: Retrieve all visit data 
@@ -181,10 +176,10 @@
 
 /**
  * @swagger
- * /admin/registerHost:
+ * /create/host:
  *   post:
  *     tags:
- *       - Admin
+ *       - Public
  *     summary: Register a new host
  *     description: Register a new host in the system (admin access required).
  *     security:
@@ -221,27 +216,48 @@
  *       500:
  *         description: Internal Server Error
  * 
- * components:
- *   schemas:
- *     HostRegistration:
- *       type: object
- *       properties:
- *         username:
- *           type: string
- *           description: Host's username
- *           example: john_doe
- *         password:
- *           type: string
- *           description: Host's password
- *           example: my_secure_password
- *         email:
- *           type: string
- *           description: Host's email
- *           example: john@example.com
- *         phoneNumber:
- *           type: number
- *           description: Host's phone number
- *           example: 1234567890
+ */
+
+/**
+ * @swagger
+ * /create/test/host:
+ *   post:
+ *     tags:
+ *       - Public
+ *     summary: Register a new host
+ *     description: Test route to register a new host in the system (admin access required).
+ *     requestBody:
+ *          required: true
+ *          content: 
+ *              application/json:
+ *                  schema:
+ *                      type: object
+ *                      properties:
+ *                          username:
+ *                              type: string
+ *                          password:
+ *                              type: string
+ *                          email:
+ *                              type: string
+ *                          phoneNumber:
+ *                              type: Number
+ *                      required:
+ *                          - username
+ *                          - password
+ *                          - email
+ *                          - phoneNumber
+ *     responses:
+ *       201:
+ *         description: Host registered successfully
+ *       400:
+ *         description: Bad Request - Invalid request payload
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       403:
+ *         description: Forbidden - Insufficient permissions
+ *       500:
+ *         description: Internal Server Error
+ * 
  */
 
 
@@ -292,6 +308,9 @@
  *              status: 500
  *              error: 'Internal Server Error'
  */
+
+
+
 
 
 // Add your components definitions here
@@ -370,8 +389,8 @@
  *   post:
  *     security:
  *       - Authorization: []
- *     summary: Issue a visitor for a host
- *     description: This endpoint allows hosts to issue a visitor.
+ *     summary: Issue a visitor pass by a host
+ *     description: This endpoint allows hosts to issue a visitor to obtain a visitor pass.
  *     tags:
  *       - Host
  *     parameters:
@@ -441,21 +460,6 @@
  * @swagger
  * components:
  *   schemas:
- *     Visit:
- *       type: object
- *       required:
- *         - destination
- *         - phoneNumber
- *       properties:
- *         destination:
- *           type: string
- *           description: The destination of the visit
- *         visitTime:
- *           type: string
- *           format: date-time
- *           description: The time of the visit
- *       example:
- *         destination: 6464,Jalan Tuah 5
  *
  *     Visitor:
  *       type: object
@@ -469,16 +473,13 @@
  *         phoneNumber:
  *           type: number
  *           description: Phone number of the visitor
- *         visits:
- *           type: array
- *           items:
- *             $ref: '#/components/schemas/Visit'
+ *         destination:
+ *           type: string
+ *           description: Place the visitor want to visit
  *       example:
  *         name: John Doe
  *         phoneNumber: 1234567890
- *         visits:
- *           - destination: 5,Jalan Oz 5
- *             visitTime: '2023-01-01T12:00:00Z'
+ *         destination: 34, Jalan Oz53
  *
  *     User:
  *       type: object
@@ -524,5 +525,25 @@
  *               - destination: 5, Jalan Oz 8
  *                 phoneNumber: 1234567890
  *                 visitTime: '2023-01-01T12:00:00Z'
+ * 
+ *     HostRegistration:
+ *       type: object
+ *       properties:
+ *         username:
+ *           type: string
+ *           description: Host's username
+ *           example: john_doe
+ *         password:
+ *           type: string
+ *           description: Host's password
+ *           example: my_secure_password
+ *         email:
+ *           type: string
+ *           description: Host's email
+ *           example: john@example.com
+ *         phoneNumber:
+ *           type: number
+ *           description: Host's phone number
+ *           example: 1234567890
  */
 

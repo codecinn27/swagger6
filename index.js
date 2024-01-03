@@ -1,15 +1,15 @@
 require("dotenv").config();
 const { MongoClient, ObjectId } = require('mongodb');
-const url = process.env.MONGO_URI  ;
+const url = process.env.MONGO_URI ;
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const app = express();
-const port = process.env.PORT || 3000
+const port = process.env.PORT || 3000;
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const collection1 = 'users';
 const collection2 = 'visitors';
-const collection3 = 'visitors_pass';
+const collection3 = 'users_test';
 const dbName = 'vms1';
 const swaggerJSDoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
@@ -17,7 +17,7 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const role1 = 'admin';
 const role2 = 'host';
 const cors = require('cors');
-
+const qrCode_c = require('qrcode');
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(url);
@@ -37,7 +37,7 @@ const options = {
 
         },
         tags:[
-            {name:'Login', description:"Default endpoints"},
+            {name:'Public', description:"Public API"},
             {name: 'Admin', description:"Admin operation"},
             {name: 'Host', description:"Host operation"},
         ],
@@ -79,6 +79,7 @@ async function run() {
         res.send("helloworld")
     })
 
+    //success
     app.post('/login', async (req, res) => {
         try{
             let data = req.body;
@@ -90,6 +91,7 @@ async function run() {
         }
     });
 
+    //success
     app.get('/showCurrentlyLogin', async(req,res)=>{
       try{
         const data = await showCurrentLogin(req);
@@ -100,18 +102,21 @@ async function run() {
     }
     })
 
-    app.post('/retrieveContact/:id', authenticateAll, async(req,res)=>{
+    //success
+    app.get('/retrievePass/:visitor_id', authenticateAll, async(req,res)=>{
       try{
-          const {id} = req.params;
-          const result = await retrieveContact(client, id);
-          res.json({result});
+          const {visitor_id} = req.params;
+          const result = await qrCodeCreation(client, visitor_id);
+          res.setHeader('Content-Type','image/png');
+          res.end(result,'binary');
       }catch (error) {
-          console.error('Error during /retrieveContact/:id', error);
+          console.error('Error during /retrievePass/:id', error);
           res.status(500).json({ error: 'Internal Server Error' });
         }
     } )
 
-    app.get('/admin/visits',authenticateAdmin,async (req, res) => {
+    //success
+    app.get('/admin/visitors',authenticateAdmin,async (req, res) => {
         try {
           const allVisits = await readVisitsData(client);
           res.status(200).json(allVisits);  // Set the status code explicitly
@@ -121,17 +126,31 @@ async function run() {
         }
     });
 
-    app.post('/admin/registerHost', authenticateAdmin,async (req, res) => {
+    //success
+    app.post('/create/host', authenticateAdmin,async (req, res) => {
         try {
           let data = req.body;
           const result = await registerHost(client, data);
           res.json(result);
         } catch (error) {
-          console.error('Error during /admin/registerHost:', error);
+          console.error('Error during /create/host:', error);
           res.status(500).json({ error: 'Internal Server Error' });
         }
       });
+    
+    //success
+    app.post('/create/test/host', async (req, res) => {
+      try {
+        let data = req.body;
+        const result = await registerHost1(client, data);
+        res.json(result);
+      } catch (error) {
+        console.error('Error during /crete/test/host:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+      }
+    });
 
+    //success
     app.get('/admin/dumpHost', authenticateAdmin, async(req,res)=>{
       try {
         const allHost = await readHostData(client);
@@ -142,8 +161,7 @@ async function run() {
       }
     })
 
-    
-
+    //success
     app.get('/host/:hostId',authenticateHost ,async(req,res)=>{
       try{
         const { hostId } = req.params;
@@ -160,7 +178,7 @@ async function run() {
           res.status(500).json({ error: 'Internal Server Error' });
         }
     })
-
+    //success
     app.get('/host/:hostId/visitors', authenticateHost,async(req,res)=>{
       try{
         const {hostId} = req.params;
@@ -175,6 +193,7 @@ async function run() {
         res.status(500).json({ error: 'Internal Server Error' });
       }
     })
+    //success
     app.post('/host/:hostId/issueVisitor', authenticateHost, async (req, res) => {
       try {
         const { hostId } = req.params;
@@ -269,7 +288,7 @@ async function login( client, data) {
 
 async function readVisitsData(client) {
     const db = client.db(dbName);
-    const visitsCollection = db.collection(collection3);
+    const visitsCollection = db.collection(collection2);
     
     try {
         const allVisits = await visitsCollection.find({}).toArray();
@@ -324,6 +343,34 @@ async function registerHost(client, data){
       visitors: []
     });
     return {status:201, data: { message: 'Host registered susccessfully'}};
+    }catch (error) {
+      console.error('Error registering host:', error);
+      return {status: 500, data: {error: 'Internal Server Error'}};
+
+  }    
+}
+
+async function registerHost1(client, data){
+  try{
+     //to detect any error with your terminal
+    console.log("Request body: ", data);
+    const {username, password, email, phoneNumber} = data;
+    // Check if the username is unique (you can add more validation if needed)
+    
+    const existingUser = await client.db(dbName).collection(collection3).findOne({username});
+    if (existingUser){
+      return {status:400 , data: { error: 'Username already exists' }};
+    }
+    const hash = await bcrypt.hash(password,10);
+    await client.db(dbName).collection(collection3).insertOne({
+      username,
+      password: hash,
+      email,
+      phoneNumber,
+      category: "host",
+      visitors: []
+    });
+    return {status:201, data: { message: 'Test Host registered susccessfully'}};
     }catch (error) {
       console.error('Error registering host:', error);
       return {status: 500, data: {error: 'Internal Server Error'}};
@@ -515,54 +562,38 @@ function authenticateAll(req,res,next){
 async function issueVisitorForHost(client, hostId, data) {
   
   try{
-    const {visitorName, visitorPhoneNumber, destination} = data;
-    const hostUser = await client.db(dbName).collection(collection1).findOne({ _id: ObjectId(hostId), category: role2 });
-
+    // Convert the string id to ObjectId
+    const objectId = new ObjectId(hostId);
+    const {name, phoneNumber, destination} = data;
+    const hostUser = await client.db(dbName).collection(collection1).findOne({ _id: objectId, category: role2 });
+    // Calculate the new visitor_id based on the total number of registered visitors
+    const totalVisitors = await client.db(dbName).collection(collection2).countDocuments();
+    const newVisitorId = 100 + totalVisitors + 1;
     // Create a new visit
-    const visit = {
+    const visitor_t = {
+      visitor_id : newVisitorId,
+      name,
+      phoneNumber,
       destination: destination,
       visitTime: new Date(),
+      pass: false,
       from: null,
     };
-
     if (!hostUser) {
       return { status: 404, data: { error: 'Host not found' } };
     }
-    const existingVisitor = await client.db(dbName).collection(collection2).findOne({name: visitorName});
-    if(existingVisitor){
-      existingVisitor.visit_pass.push(visit);
-      visit.from = existingVisitor._id;
-      await client.db(dbName).collection(collection3).insertOne(visit);
-      await client.db(dbName).collection(collection2).updateOne({ _id: existingVisitor._id}, { $push: { visit_pass: visit } });
-      await client.db(dbName).collection(collection1).updateOne({_id: hostUser._id},{$push:{visitors: existingVisitor}});
-      return { status: 200, data: `Visitor ${existingVisitor.name} issued successfully for host ${hostId}` };
-    }
+    visitor_t.from = hostUser._id;
+    await client.db(dbName).collection(collection1).updateOne({_id:hostUser._id},{$push:{visitors: visitor_t}});
+    await client.db(dbName).collection(collection2).insertOne(visitor_t);
 
-    // Create a new visitor
-    const visitor = {
-      name: visitorName,
-      phoneNumber: visitorPhoneNumber,
-      visit_pass: [],
-    };
-    // Save the visitor data to the database
-    const visitorResult = await client.db(dbName).collection(collection2).insertOne(visitor);
-
-    // Update the visitor with the visit ID
-    visitor.visit_pass.push(visit);
-    visit.from = visitor._id;
-    // Save the visitor and visit data to the database
-    await client.db(dbName).collection(collection3).insertOne(visit);
-    await client.db(dbName).collection(collection2).updateOne({ _id: visitorResult.insertedId }, { $set: { visit_pass: visitor.visit_pass } });
-    await client.db(dbName).collection(collection1).updateOne({_id: hostUser._id},{$push: {visitors:visitor}});
-    
-    return { status: 200, data: `Visitor ${visitorName} issued successfully for host ${hostId}` };
+    return { status: 200, data: `Visitor ${visitor_t.name} issued successfully for host ${hostUser.username}` };
   } catch (error) {
     console.error('Error issuing visitor:', error);
     return { status: 500, data: { error: 'Internal Server Error' } };
   }
 }
 
-async function retrieveContact(client, id){
+async function retrievePass(client, id){
   try{
 
     const objectId = new ObjectId(id);
@@ -587,4 +618,30 @@ async function retrieveContact(client, id){
     console.error('Error retrieving visitor pass:', error);
     return { status: 500, data: { error: 'Internal Server Error' } };
   }
+}
+
+
+async function qrCodeCreation(client, id){
+  console.log("this is id :", id);
+  const data = await client.db(dbName).collection(collection2).find({}).toArray();
+  console.log(data);
+  const visitorResult = await client.db(dbName).collection(collection2).findOne({visitor_id: parseInt(id)});
+  if(!visitorResult){
+    return {status : 404, data: {error: "Visitor not yet register"}};
+  }
+  const visitorData = {
+    visitor_id : visitorResult.visitor_id,
+    name: visitorResult.name,
+    phoneNumber: visitorResult.phoneNumber,
+    destination: visitorResult.destination,
+    visitTime: visitorResult.visitTime
+  }
+  const stringdata = JSON.stringify(visitorData)
+  const qrCode_produced = await qrCode_c.toBuffer(stringdata, {type: 'png'});
+  // Set the pass field to true in the database
+  const result = await client.db(dbName).collection(collection2).updateOne({visitor_id: parseInt(id)},{$set:{pass: true}});
+  if(!result){
+    console.log("fail");
+  }
+  return (qrCode_produced);
 }
