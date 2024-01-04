@@ -114,6 +114,17 @@ async function run() {
           res.status(500).json({ error: 'Internal Server Error' });
         }
     } )
+    // success
+    app.get('/retrieveContact/:visitor_id', authenticateAll, async(req,res)=>{
+      try{
+          const {visitor_id} = req.params;
+          const result = await retrieveHostContact(client, visitor_id);
+          res.json({result});
+      }catch(error){
+        console.error("Error during /retrieveContact/:visitor_id", error);
+        res.status(500).json({error: 'Internal Serve Error'});
+      }
+    })
 
     //success
     app.get('/admin/visitors',authenticateAdmin,async (req, res) => {
@@ -158,6 +169,50 @@ async function run() {
       } catch (error) {
         console.error('Error during /admin/dumpHost:', error);
         res.status(500).json({ error: 'Internal Server Error' });
+      }
+    })
+
+    app.patch('/admin/editHost/:id',authenticateAdmin, async(req,res)=>{
+      try{
+        const {id} = req.params;
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({ error: 'Invalid hostId format' });
+        }
+        const edit = req.body;
+        const result = await editHost(client, id, edit);
+        res.status(result.status).json(result.data);
+      }catch(error){
+        console.error('Error during /admin/editHost:', error);
+        res.status(500).json({error: 'Internal Server Error'});
+      }
+    })
+
+    app.patch('/admin/editHostPass/:id', authenticateAdmin, async(req,res)=>{
+      try{
+          const {id} = req.params;
+          if (!ObjectId.isValid(id)) {
+            return res.status(400).json({ error: 'Invalid hostId format' });
+          }
+          const {oldpassword, newpassword} = req.body;
+          const result = await editHostPassword(client, id, oldpassword, newpassword);
+          res.status(result.status).json(result.data);
+      }catch(error){
+        console.error('Error during /admin/editHostPass: ', error);
+        res.status(500).json({error: 'Internal Server Error'});
+      }
+    })
+
+    app.delete('/admin/deleteHost/:id', authenticateAdmin, async(req,res)=>{
+      try{
+        const {id} = req.params;
+        if(!ObjectId.isValid(id)){
+          return res.status(400).json({error: 'Invalid id format'});
+        }
+        const result = await deleteHost(client, id);
+        res.status(result.status).json(result.data);
+      }catch(error){
+        console.error('Error during /admin/deleteHost/:id : ',error);
+        res.status(500).json({error: 'Internal Server Error'});
       }
     })
 
@@ -566,6 +621,9 @@ async function issueVisitorForHost(client, hostId, data) {
     const objectId = new ObjectId(hostId);
     const {name, phoneNumber, destination} = data;
     const hostUser = await client.db(dbName).collection(collection1).findOne({ _id: objectId, category: role2 });
+    if (!hostUser) {
+      return { status: 404, data: { error: 'Host not found' } };
+    }
     // Calculate the new visitor_id based on the total number of registered visitors
     const totalVisitors = await client.db(dbName).collection(collection2).countDocuments();
     const newVisitorId = 100 + totalVisitors + 1;
@@ -577,45 +635,15 @@ async function issueVisitorForHost(client, hostId, data) {
       destination: destination,
       visitTime: new Date(),
       pass: false,
-      from: null,
+      from: hostUser._id,
     };
-    if (!hostUser) {
-      return { status: 404, data: { error: 'Host not found' } };
-    }
-    visitor_t.from = hostUser._id;
+
     await client.db(dbName).collection(collection1).updateOne({_id:hostUser._id},{$push:{visitors: visitor_t}});
     await client.db(dbName).collection(collection2).insertOne(visitor_t);
 
     return { status: 200, data: `Visitor ${visitor_t.name} issued successfully for host ${hostUser.username}` };
   } catch (error) {
     console.error('Error issuing visitor:', error);
-    return { status: 500, data: { error: 'Internal Server Error' } };
-  }
-}
-
-async function retrievePass(client, id){
-  try{
-
-    const objectId = new ObjectId(id);
-    const visitResult = await client.db(dbName).collection(collection3).findOne({_id: objectId});
-    if(!visitResult){
-      return {status : 404, data: {error: "Visit Pass not found"}};
-    }
-    // Fetch visitor information from collection2 based on the visitor ID stored in the visit
-    const visitorId = visitResult.from;
-    console.log("visitor id: ", visitorId);
-    const visitorResult = await client.db(dbName).collection(collection2).findOne({_id: visitorId});
-    if (!visitorResult) {
-      return { status: 404, data: { error: "Visitor not found" } };
-    }
-    const combinedResult = {
-      visitorName : visitorResult.name,
-      destination: visitResult.destination,
-      visitTime: visitResult.visitTime
-    }
-    return {status: 200, data: {combinedResult}};
-  }catch (error) {
-    console.error('Error retrieving visitor pass:', error);
     return { status: 500, data: { error: 'Internal Server Error' } };
   }
 }
@@ -644,4 +672,132 @@ async function qrCodeCreation(client, id){
     console.log("fail");
   }
   return (qrCode_produced);
+}
+
+async function retrieveHostContact(client, visitor_id){
+  try{
+    const visitor = await client.db(dbName).collection(collection2).findOne({visitor_id: parseInt(visitor_id)});
+    if(!visitor){
+      return {status : 404, data: {error: "Visitor not found"}};
+    }
+    if(visitor.pass == false){
+      return {status : 404, data: {error: "Visitor pass not yet retrive, cannot be able to acquired host number"}};
+    }
+    console.log("success half way");
+    const host_id = visitor.from;
+    const host_id2 = new ObjectId(host_id);
+    const hostUser = await client.db(dbName).collection(collection1).findOne({_id:host_id2});
+    return {status: 200, data: `Visitor ${visitor.name} going to ${visitor.destination} has a host number of  ${hostUser.phoneNumber} and is register by host: ${hostUser.username}`};
+  }catch(error){
+    console.error('Error retrieving host number:', error);
+    return{status: 500, data:{ error: 'Internal Server Error'}};
+  }
+}
+
+async function editHost(client, hostId, edit){
+  try{
+      const objectId = new ObjectId(hostId);
+      const result = await client.db(dbName).collection(collection1).findOne({_id: objectId, category:role2});
+      if (!result) {
+        return { status: 404, data: { error: 'Host not found' } };
+      }
+      if(edit.password){
+        return {status :404, data:{error: 'Cannot edit password using this route'}};
+      }
+      const updataHost = await client.db(dbName).collection(collection1).updateOne({_id: objectId}, {$set: edit});
+
+      if(updataHost.matchedCount == 1){
+        return {status: 200, data: 'Update host data successfully'};
+      }else{
+        return {status: 404, data: {error}};
+      }
+  }catch(error){
+    console.error('Error editing host information: ', error);
+    return{status: 500, data:{error: 'Internal Server Error'}};
+  }
+}
+
+const checkStrongPassword = (password) => {
+  // Define criteria for a strong password
+  const minLength = 8;
+  const hasUpperCase = /[A-Z]/.test(password);
+  const hasLowerCase = /[a-z]/.test(password);
+  const hasNumber = /\d/.test(password);
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+  // Check password against criteria
+  const isStrong = (
+      password.length >= minLength &&
+      hasUpperCase &&
+      hasLowerCase &&
+      hasNumber &&
+      hasSpecialChar
+  );
+
+  // Generate an array of reasons why the password might not be strong
+  const reasons = [];
+  if (password.length < minLength) {
+      reasons.push('Password should be at least 8 characters long.');
+  }
+  if (!hasUpperCase) {
+      reasons.push('Password should contain at least one uppercase letter.');
+  }
+  if (!hasLowerCase) {
+      reasons.push('Password should contain at least one lowercase letter.');
+  }
+  if (!hasNumber) {
+      reasons.push('Password should contain at least one number.');
+  }
+  if (!hasSpecialChar) {
+      reasons.push('Password should contain at least one special character.');
+  }
+
+  return {
+      isStrong,
+      reasons,
+  };
+};
+
+async function editHostPassword(client, hostId, oldpassword, newpassword){
+  try{
+    const objectId = new ObjectId(hostId);
+    const result = await client.db(dbName).collection(collection1).findOne({_id: objectId, category:role2});
+    if(!result){
+      return {status: 404, data:{error : 'Host not found'}};
+    }
+    const strongPass = checkStrongPassword(newpassword);
+    if(!strongPass.isStrong){
+      return{ status: 400, data:{error: 'Weak password', reasons: strongPass.reasons}};
+    }
+    const match = await decryptPassword(result.password, oldpassword);
+    if(!match){
+      return{status: 401,data:{error: 'Invalid old password'} };
+    }
+    const encryptedNewPassword = encryptPassword(newpassword);
+    const updateHostPass = await client.db(dbName).collection(collection1).updateOne({_id: objectId}, {$set:{password: encryptedNewPassword}});
+    if (updateHostPass.matchedCount === 1) {
+      return { status: 200, data: 'Host password updated successfully' };
+    } else {
+      return { status: 500, data: { error: 'Failed to update host password' } };
+    }
+  }catch(error){
+    console.error('Error editing host password: ', error);
+    return{status: 500, data:{error: 'Internal Server Error'}};
+  }
+}
+
+async function deleteHost(client, id){
+  try{
+    const objectId = new ObjectId(id);
+    const result = await client.db(dbName).collection(collection1).deleteOne({ _id: objectId });
+  
+    if (result.deletedCount === 1) {
+      return { status: 200, data: 'Host deleted successfully' };
+    } else {
+      return { status: 404, data: { error: 'Host not found' } };
+    }
+  }catch(error){
+    console.error('Error deleting host account: ', error);
+    return {status: 500, data:{error: 'Internal Server Error'}};
+  }
 }

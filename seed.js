@@ -22,7 +22,7 @@ async function seedData() {
     const highestVisitorId = await db.collection(collection2).find().sort({ _id: -1 }).limit(1).toArray();
     let nextVisitorId = highestVisitorId.length > 0 ? highestVisitorId[0]._id + 1 : 101;
     // Sample user data
-    const hash = await bcrypt.hash("adminpassword", 10); 
+    const hash = await bcrypt.hash("Adminpassword@123", 10); 
     const user = {
       username: "admin1",
       password: hash,
@@ -42,8 +42,6 @@ async function seedData() {
       pass: false,
       from:null
     };
-    // Update the visitor with the visit ID
-    visitor1.from = user._id;
 
     // Connect the visitor data to the user schema
     user.visitors.push(visitor1);
@@ -52,8 +50,11 @@ async function seedData() {
     const visitor1Result = await db.collection(collection2).insertOne(visitor1);
 
     await db.collection(collection1).insertOne(user);
+    // Update the visitor with the visit ID
+    const updateVisitor = await db.collection(collection2).updateOne({name: visitor1.name},{$set:{from : user._id}});
+    const updateUser_visitors_from = await db.collection(collection1).updateOne({username: user.username}, {$set: {'visitors.0.from': visitor1._id}});
     // Sample host user data
-    const ePass2 = await encryptPassword('hostpassword');
+    const ePass2 = await encryptPassword('Hostpassword@123');
     const hostUser = {
         username: "host1",
         password: ePass2,
@@ -73,13 +74,14 @@ async function seedData() {
         pass: false,
         from:null
     };
-    visitor2.from = hostUser._id;
     // Connect the visitor data to the host user schema
     hostUser.visitors.push(visitor2);
    
     const visitor2Result = await db.collection(collection2).insertOne(visitor2);
     await db.collection('users').insertOne(hostUser);
-
+    // Update the visitor with the visit ID
+    const updateVisitor2 = await db.collection(collection2).updateOne({name: visitor2.name},{$set:{from : hostUser._id}});
+    const updateUser_visitor_from = await db.collection(collection1).updateOne({username: hostUser.username}, {$set: {'visitors.0.from' : hostUser._id}});
     console.log('Data seeded successfully');
   } catch (error) {
     console.error('Error seeding data:', error);

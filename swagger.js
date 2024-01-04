@@ -143,6 +143,38 @@
  *          description: Unauthorized - Invalid or missing token
  */
 
+/**
+ * @swagger
+ * /retrieveContact/{visitor_id}:
+ *    get:
+ *      summary: Give the host phone number that help the visitor to register
+ *      security:
+ *        - Authorization: []
+ *      tags:
+ *        - Public
+ *      parameters:
+ *          - in: path
+ *            name: visitor_id
+ *            description: visitor id
+ *            required: true
+ *            schema: 
+ *              type: string
+ *      responses:
+ *        200:
+ *          description: Successful retrieval of host phone number through visitor pass 
+ *          content:
+ *            application/json:
+ *              schema:
+ *               type: object
+ *               properties:
+ *                 message:
+ *                   type: string
+ *                   description: Phone number of the host
+ *                   example: "Visitor Adam goitng to 1, Jalan OZ 6 has a host number of 234-3432034 and is registered by host: John Doe"
+ *            
+ *        401:
+ *          description: Unauthorized - Invalid or missing token
+ */
 
 
 /**
@@ -309,13 +341,233 @@
  *              error: 'Internal Server Error'
  */
 
+/**
+ * @swagger
+ * /admin/editHost/{id}:
+ *   patch:
+ *     summary: Edit host information (Admin)
+ *     security:
+ *       - Authorization: []
+ *     tags:
+ *       - Admin
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         description: Host ID
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: header
+ *         name: Authorization
+ *         description: JWT token for authentication (Admin)
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       description: Updated host data
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               username:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *               phoneNumber:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: Host data updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: string
+ *                   description: Success message
+ *                   example: Update host data successfully
+ *       404:
+ *         description: Host not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Host not found
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Internal Server Error
+ */
 
 
+/**
+ * @swagger
+ * /admin/editHostPass/{id}:
+ *   patch:
+ *     summary: Edit host password (Admin)
+ *     security:
+ *       - Authorization: []
+ *     tags:
+ *       - Admin
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         description: Host ID
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: header
+ *         name: Authorization
+ *         description: JWT token for authentication (Admin)
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       description: Object containing old and new passwords
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               oldpassword:
+ *                 type: string
+ *               newpassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Host password updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: string
+ *                   description: Success message
+ *                   example: Host password updated successfully
+ *       400:
+ *         description: Weak password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Weak password
+ *                 reasons:
+ *                   type: array
+ *                   description: Array of reasons why the password is weak
+ *                   items:
+ *                     type: string
+ *       401:
+ *         description: Invalid old password
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Invalid old password
+ *       404:
+ *         description: Host not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Host not found
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Internal Server Error
+ */
 
-
-// Add your components definitions here
-
-// Add your other Swagger paths, definitions, etc.
+/**
+ * @swagger
+ * /admin/deleteHost/{id}:
+ *   delete:
+ *     summary: Delete host by ID (Admin)
+ *     security:
+ *       - Authorization: []
+ *     tags:
+ *       - Admin
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         description: Host ID
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: header
+ *         name: Authorization
+ *         description: JWT token for authentication (Admin)
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Host deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 data:
+ *                   type: string
+ *                   description: Success message
+ *                   example: Host deleted successfully
+ *       404:
+ *         description: Host not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Host not found
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 error:
+ *                   type: string
+ *                   description: Error message
+ *                   example: Internal Server Error
+ */
 
 
 /**
