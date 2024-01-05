@@ -1,5 +1,6 @@
+require("dotenv").config();
 const { MongoClient } = require('mongodb');
-const url = 'mongodb+srv://codecinnpro:7G5lg1qQNpzglv04@cluster0.u7w8rcg.mongodb.net/?retryWrites=true&w=majority'
+const url = process.env.MONGO_URI;
 const dbName = 'vms1';
 const client = new MongoClient(url, { useUnifiedTopology: true });
 const bcrypt = require('bcrypt');
@@ -22,7 +23,7 @@ async function seedData() {
     const highestVisitorId = await db.collection(collection2).find().sort({ _id: -1 }).limit(1).toArray();
     let nextVisitorId = highestVisitorId.length > 0 ? highestVisitorId[0]._id + 1 : 101;
     // Sample user data
-    const hash = await bcrypt.hash("Adminpassword@123", 10); 
+    const hash = await bcrypt.hash(process.env.admin_pass, 10); 
     const user = {
       username: "admin1",
       password: hash,
@@ -54,7 +55,7 @@ async function seedData() {
     const updateVisitor = await db.collection(collection2).updateOne({name: visitor1.name},{$set:{from : user._id}});
     const updateUser_visitors_from = await db.collection(collection1).updateOne({username: user.username}, {$set: {'visitors.0.from': visitor1._id}});
     // Sample host user data
-    const ePass2 = await encryptPassword('Hostpassword@123');
+    const ePass2 = await encryptPassword(process.env.host_pass, saltRounds);
     const hostUser = {
         username: "host1",
         password: ePass2,

@@ -405,6 +405,7 @@ async function registerHost(client, data){
   }    
 }
 
+//use for testing , save to different collection
 async function registerHost1(client, data){
   try{
      //to detect any error with your terminal
