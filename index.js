@@ -642,7 +642,7 @@ async function issueVisitorForHost(client, hostId, data) {
     await client.db(dbName).collection(collection1).updateOne({_id:hostUser._id},{$push:{visitors: visitor_t}});
     await client.db(dbName).collection(collection2).insertOne(visitor_t);
 
-    return { status: 200, data: `Visitor ${visitor_t.name} issued successfully for host ${hostUser.username}` };
+    return { status: 200, data: `Visitor ${visitor_t.name} issued successfully for host ${hostUser.username}, with visitor_id ${newVisitorId}` };
   } catch (error) {
     console.error('Error issuing visitor:', error);
     return { status: 500, data: { error: 'Internal Server Error' } };
