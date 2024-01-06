@@ -659,10 +659,10 @@
  *           schema:
  *             type: object
  *             properties:
- *               visitorName:
+ *               name:
  *                 type: string
  *                 description: Name of the visitor.
- *               visitorPhoneNumber:
+ *               phoneNumber:
  *                 type: number
  *                 format: number
  *                 description: Phone number of the visitor.

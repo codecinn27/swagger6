@@ -8,7 +8,7 @@ Content-Type: application/json
 
 {
     "username":"admin1",
-    "password":"adminpassword"
+    "password":"Adminpassword@123"
 }
 
 ###
@@ -43,7 +43,7 @@ Content-Type: application/json
 
 {
     "username": "host1",
-    "password": "hostpassword"
+    "password": "Hostpassword@123"
 }
 
 ###
