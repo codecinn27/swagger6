@@ -770,7 +770,7 @@ async function editHostPassword(client, hostId, oldpassword, newpassword){
     if(!strongPass.isStrong){
       return{ status: 400, data:{error: 'Weak password', reasons: strongPass.reasons}};
     }
-    const match = await decryptPassword(result.password, oldpassword);
+    const match = await decryptPassword(oldpassword ,result.password);
     if(!match){
       return{status: 401,data:{error: 'Invalid old password'} };
     }
