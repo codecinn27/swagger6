@@ -43,7 +43,7 @@ Content-Type: application/json
 
 {
     "username": "host1",
-    "password": "Hostpassword@123"
+    "password": "Hostpassword@1234"
 }
 
 ###

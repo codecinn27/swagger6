@@ -369,12 +369,12 @@ async function readHostData(client) {
 
 async function encryptPassword(password) {
   const hash = await bcrypt.hash(password, saltRounds); 
-  return hash 
+  return hash; 
 }
 
-async function decryptPassword(password, compare) {
-  const match = await bcrypt.compare(password, compare)
-  return match
+async function decryptPassword(userProvidedPassword, storedHashedPassword) {
+  const match = await bcrypt.compare(userProvidedPassword, storedHashedPassword)
+  return match;
 }
 
 async function registerHost(client, data){
@@ -774,7 +774,7 @@ async function editHostPassword(client, hostId, oldpassword, newpassword){
     if(!match){
       return{status: 401,data:{error: 'Invalid old password'} };
     }
-    const encryptedNewPassword = encryptPassword(newpassword);
+    const encryptedNewPassword = await bcrypt.hash(newpassword, saltRounds); 
     const updateHostPass = await client.db(dbName).collection(collection1).updateOne({_id: objectId}, {$set:{password: encryptedNewPassword}});
     if (updateHostPass.matchedCount === 1) {
       return { status: 200, data: 'Host password updated successfully' };
