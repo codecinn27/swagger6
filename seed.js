@@ -1,8 +1,9 @@
 require("dotenv").config();
-const { MongoClient } = require('mongodb');
-const url = process.env.MONGO_URI;
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const url = process.env.MONGO_URL;
+const credentials = process.env.certificate;
 const dbName = 'vms1';
-const client = new MongoClient(url, { useUnifiedTopology: true });
+const client = new MongoClient(url, {tlsCertificateKeyFile: credentials, serverApi: ServerApiVersion.v1 });
 const bcrypt = require('bcrypt');
 const saltRounds = 10;
 const collection1 = 'users';

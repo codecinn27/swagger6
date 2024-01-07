@@ -1,6 +1,7 @@
 require("dotenv").config();
-const { MongoClient, ObjectId } = require('mongodb');
-const url = process.env.MONGO_URI ;
+const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
+const url = process.env.MONGO_URL ;
+const credentials = process.env.certificate;
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const app = express();
@@ -20,7 +21,7 @@ const cors = require('cors');
 const qrCode_c = require('qrcode');
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(url);
+const client = new MongoClient(url, {tlsCertificateKeyFile: credentials, serverApi: ServerApiVersion.v1 });
 
 const options = {
     definition:{
