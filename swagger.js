@@ -128,7 +128,7 @@
  *            required: true
  *            schema: 
  *              type: string
- *      responses:
+  *      responses:
  *        200:
  *          description: Successful retrieval of visitor pass information
  *          content:
@@ -139,6 +139,26 @@
  *                   format: uri
  *                   description: URL to the generated QR code    
  *              description: Visitor information retrieved from visitor pass
+ *        404:
+ *          description: Visitor not found
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  error:
+ *                    type: string
+ *                    description: Visitor not yet registered
+ *        500:
+ *          description: Internal Server Error
+ *          content:
+ *            application/json:
+ *              schema:
+ *                type: object
+ *                properties:
+ *                  error:
+ *                    type: string
+ *                    description: Internal Server Error
  *        401:
  *          description: Unauthorized - Invalid or missing token
  */
