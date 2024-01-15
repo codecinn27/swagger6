@@ -114,6 +114,81 @@
 
 /**
  * @swagger
+ *  /delete/visitors:
+ *    post:
+ *      summary: Delete a visitor
+ *      description: Deletes a visitor based on the provided data.
+ *      tags:
+ *        - Public
+ *      security:
+ *        - Authorization: []
+ *      requestBody:
+ *        required: true
+ *        content: 
+ *          application/json:
+ *            schema:
+ *              type: object
+ *              properties:
+ *                name:
+ *                  type: string
+ *      responses:
+ *        200:
+ *          description: Success. Visitor deleted successfully.
+ *          schema:
+ *            type: object
+ *            properties:
+ *              status:
+ *                type: integer
+ *                example: 200
+ *              data:
+ *                type: string
+ *                example: 'Visitor deleted successfully'
+ *        403:
+ *          description: Forbidden. Permission denied.
+ *          schema:
+ *            type: object
+ *            properties:
+ *              status:
+ *                type: integer
+ *                example: 403
+ *              data:
+ *                type: object
+ *                properties:
+ *                  error:
+ *                    type: string
+ *                    example: 'Permission denied'
+ *        404:
+ *          description: Not Found. Visitor not found.
+ *          schema:
+ *            type: object
+ *            properties:
+ *              status:
+ *                type: integer
+ *                example: 404
+ *              data:
+ *                type: object
+ *                properties:
+ *                  error:
+ *                    type: string
+ *                    example: 'Visitor not found'
+ *        500:
+ *          description: Internal Server Error. Failed to delete visitor.
+ *          schema:
+ *            type: object
+ *            properties:
+ *              status:
+ *                type: integer
+ *                example: 500
+ *              data:
+ *                type: object
+ *                properties:
+ *                  error:
+ *                    type: string
+ *                    example: 'Internal Server Error'
+ */
+
+/**
+ * @swagger
  * /retrievePass/{visitor_id}:
  *    get:
  *      summary: Give the visitor pass

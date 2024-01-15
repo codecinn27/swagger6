@@ -170,6 +170,18 @@ async function run() {
       }
     });
 
+    app.post('/delete/visitors', extractUserInfo, async(req,res)=>{
+      try{
+        let data = req.body;
+        console.log("in /delete/visitors : req.userInfo: ",req.userInfo);
+        const result = await deleteVisitor(client, data, req.userInfo);
+        res.json(result);
+      }catch(error){
+        console.error('Error during /delete/visitors: ', error);
+        res.status(500).json({error: 'Internal server Error '});
+      }
+    })
+
     //success
     app.get('/admin/dumpHost', authenticateAdmin, async(req,res)=>{
       try {
@@ -243,7 +255,7 @@ async function run() {
         }
     })
     //success
-    app.get('/host/:hostId/visitors', authenticateHost,async(req,res)=>{
+    app.get('/host/:hostId/visitors', authenticateAll,async(req,res)=>{
       try{
         const {hostId} = req.params;
         console.log(hostId);
@@ -806,6 +818,37 @@ async function editHostPassword(client, hostId, oldpassword, newpassword){
   }
 }
 
+// Middleware to extract user information from the token
+const extractUserInfo = async (req, res, next) => {
+  try {
+    const header = req.headers.authorization;
+    if (!header) {
+      res.status(401).json({error: 'Unauthorized: Missing token'});
+    }
+    let token = header.split(' ')[1];
+    jwt.verify(token, JWT_SECRET, function(err, decoded){
+
+      if(err){
+        res.status(403).json({error:'Invalid token'});
+        
+      }else{
+        // Check if the token has the required role
+        if (decoded.category !== role1 && decoded.category!==role2) {
+          res.status(403).json({error: 'Forbidden: Insufficient permissions'})
+        }
+        // Log decoded information for troubleshooting
+        console.log('User Info:', decoded);
+        req.userInfo = decoded;
+        next();
+      }
+    });
+    
+  } catch (error) {
+    console.error('Error extracting user information:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+};
+
 async function deleteHost(client, id){
   try{
     const objectId = new ObjectId(id);
@@ -819,5 +862,64 @@ async function deleteHost(client, id){
   }catch(error){
     console.error('Error deleting host account: ', error);
     return {status: 500, data:{error: 'Internal Server Error'}};
+  }
+}
+
+async function deleteVisitor(client, data, userInfo){
+  let result3 = null; // Initialize result3 outside the block
+  let result4 = null;
+  try{
+    const result = await client.db(dbName).collection(collection2).findOne({name: data.name});
+    if(!result){
+      return {status: 404, data:{error : 'Visitors not found'}};
+    }
+    //console.log("Result: ", result);
+    //console.log("User info in the function deleteVisitor", userInfo.category);
+    const isVisitorRegisteredByHost = await checkIfVisitorRegisteredByHost(client, userInfo.userId, result._id);
+    if(userInfo.category == 'admin' || isVisitorRegisteredByHost){
+      const result2 = await client.db(dbName).collection(collection2).deleteOne({name: data.name});
+      // Update the host data to remove the visitor
+      if(isVisitorRegisteredByHost){
+        result3 = await client.db(dbName).collection(collection1).updateOne(
+          { _id: userInfo.userId },
+          { $pull: { visitors: { _id: result._id } } }
+        );
+      }else{
+        result4 = await client.db(dbName).collection(collection1).updateOne(
+          { 'visitors.visitor_id': result.visitor_id},
+          { $pull: { visitors: { _id: result._id } } }
+        );
+      }
+
+      if (result2.deletedCount === 1 && result4.modifiedCount === 1) {
+        return { status: 200, data: 'Visitor deleted successfully and successfully update by admin' };
+      } else if(result2.deletedCount === 1 && result3.modifiedCount === 1 ){
+        return {status: 200, data: 'Visitor deleted successfully by host'}
+      }else {
+        return { status: 500, data: { error: 'Failed to update host data' } };
+      }
+    } else {
+      return { status: 403, data: { error: 'Permission denied' } };
+    }
+  }catch(error){
+    console.error('Error deleting visitor: ', error);
+    return {status: 500, data: {error: 'Internal Server Error'}};
+  }
+}
+
+async function checkIfVisitorRegisteredByHost(client, userId, visitorId) {
+  try {
+    const host = await client.db(dbName).collection(collection1).findOne({ _id: userId, 'visitors._id': visitorId });
+
+    if (host) {
+      console.log("Visitor registered under the same host");
+      return true;
+    } else {
+      console.log("Visitor not registered under the host");
+      return false;
+    }
+  } catch (error) {
+    console.error('Error checking if visitor is registered by host: ', error);
+    return false; // Handle the error as needed
   }
 }
