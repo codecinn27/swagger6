@@ -875,9 +875,10 @@ async function deleteVisitor(client, data, userInfo){
     if(!result){
       return {status: 404, data:{error : 'Visitors not found'}};
     }
+    // console.log("userInfo", userInfo);
     //console.log("Result: ", result);
     //console.log("User info in the function deleteVisitor", userInfo.category);
-    const isVisitorRegisteredByHost = await checkIfVisitorRegisteredByHost(client, userInfo.userId, result._id);
+    const isVisitorRegisteredByHost = await checkIfVisitorRegisteredByHost(client, userInfo.username, result.visitor_id);
     if(userInfo.category == 'admin' || isVisitorRegisteredByHost){
       const result2 = await client.db(dbName).collection(collection2).deleteOne({name: data.name});
       // Update the host data to remove the visitor
@@ -909,9 +910,19 @@ async function deleteVisitor(client, data, userInfo){
   }
 }
 
-async function checkIfVisitorRegisteredByHost(client, userId, visitorId) {
+async function checkIfVisitorRegisteredByHost(client, name, visitorId) {
   try {
-    const host = await client.db(dbName).collection(collection1).findOne({ _id: userId, 'visitors._id': visitorId });
+    console.log("name: ", name);
+    console.log("visitorId", visitorId);
+    
+        // Use $elemMatch to find the specific visitor in the visitors array
+        const host = await client.db(dbName).collection(collection1).findOne({
+          username: name,
+          visitors: {
+            $elemMatch: { visitor_id: visitorId }
+          }
+        });
+    
 
     if (host) {
       console.log("Visitor registered under the same host");
