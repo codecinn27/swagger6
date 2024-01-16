@@ -19,7 +19,7 @@ const role1 = 'admin';
 const role2 = 'host';
 const cors = require('cors');
 const qrCode_c = require('qrcode');
-
+const rateLimit = require('express-rate-limit');
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(url, {tlsCertificateKeyFile: credentials, serverApi: ServerApiVersion.v1 });
 
@@ -81,7 +81,7 @@ async function run() {
     })
 
     //success
-    app.post('/login', async (req, res) => {
+    app.post('/login', rateLimiter, async (req, res) => {
         try{
             let data = req.body;
             const status = await login(client, data);
@@ -332,7 +332,8 @@ async function login( client, data) {
               redirectLink = `/admin`;
               allHost = await readHostData(client);
             }else{
-              return { status: 401, data: { error: 'Invalid category' } };;
+              return {status:401 , data: { error: 'Invalid category' }};
+  
             }     
             console.log("JWT:", token);
             return {
@@ -345,11 +346,12 @@ async function login( client, data) {
               },
             };
           }else{
-            return { status: 401, data: { error: 'Invalid credentials password' } };
+            return {status:401 , data: { error: 'Invalid credentials password' }};
           }
         }else{
           console.log(user);
-          return { status: 401, data: { error: 'Invalid credentials' } };
+          return {status:401 , data: { error: 'Invalid credentials' }};
+          
         }
 
 
@@ -923,3 +925,10 @@ async function checkIfVisitorRegisteredByHost(client, userId, visitorId) {
     return false; // Handle the error as needed
   }
 }
+
+// Rate limiting configuration
+const rateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: 'Too many requests from this IP, please try again after 15 minutes',
+});
