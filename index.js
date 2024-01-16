@@ -573,7 +573,7 @@ function authenticateHost(req,res,next){
   // Verify the token
 
   if (!header) {
-    res.status(401).json({error: 'Unauthorized: Missing token'});
+    return res.status(401).json({error: 'Unauthorized: Missing token'});
   }
   //split the bearer token 
   // take the index 1 , to exclude the bearer words
@@ -585,12 +585,12 @@ function authenticateHost(req,res,next){
     jwt.verify(token, JWT_SECRET, function(err, decoded){
 
       if(err){
-        res.status(403).json({error:'Invalid token'});
+        return res.status(403).json({error:'Invalid token'});
         
       }else{
         // Check if the token has the required role
         if (decoded.category !== 'host') {
-          res.status(403).json({error: 'Forbidden: Insufficient permissions'})
+          return res.status(403).json({error: 'Forbidden: Insufficient permissions'})
         }
         // Log decoded information for troubleshooting
         console.log('Decoded Token:', decoded);
@@ -609,7 +609,7 @@ function authenticateAll(req,res,next){
   // Verify the token
 
   if (!header) {
-    res.status(401).json({error: 'Unauthorized: Missing token'});
+    return res.status(401).json({error: 'Unauthorized: Missing token'});
   }
   //split the bearer token 
   // take the index 1 , to exclude the bearer words
@@ -621,12 +621,12 @@ function authenticateAll(req,res,next){
     jwt.verify(token, JWT_SECRET, function(err, decoded){
 
       if(err){
-        res.status(403).json({error:'Invalid token'});
+        return res.status(403).json({error:'Invalid token'});
         
       }else{
         // Check if the token has the required role
         if (decoded.category !== role1 && decoded.category!==role2) {
-          res.status(403).json({error: 'Forbidden: Insufficient permissions'})
+          return res.status(403).json({error: 'Forbidden: Insufficient permissions'})
         }
         // Log decoded information for troubleshooting
         console.log('Decoded Token:', decoded);
