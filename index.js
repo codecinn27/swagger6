@@ -414,7 +414,7 @@ async function registerHost(client, data){
       username,
       password: hash,
       email,
-      phoneNumber,
+      phoneNumber: String(phoneNumber), // Convert phoneNumber to string
       category: "host",
       visitors: []
     });
@@ -443,7 +443,7 @@ async function registerHost1(client, data){
       username,
       password: hash,
       email,
-      phoneNumber,
+      phoneNumber: String(phoneNumber), // Convert phoneNumber to string
       category: "host",
       visitors: []
     });
@@ -653,7 +653,7 @@ async function issueVisitorForHost(client, hostId, data) {
     const visitor_t = {
       visitor_id : newVisitorId,
       name,
-      phoneNumber,
+      phoneNumber: String(phoneNumber), // Convert phoneNumber to string
       destination: destination,
       visitTime: new Date(),
       pass: false,

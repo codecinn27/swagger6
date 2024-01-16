@@ -29,7 +29,7 @@ async function seedData() {
       username: "admin1",
       password: hash,
       email: "admin@example.com",
-      phoneNumber: 1234567890,
+      phoneNumber: "1234567890",
       category: "admin",
       visitors: [],
     };
@@ -38,7 +38,7 @@ async function seedData() {
     const visitor1 = {
       visitor_id: nextVisitorId++,
       name: "Visitor123",
-      phoneNumber: 123543539,
+      phoneNumber: "123543539",
       destination: "6, Jalan Oz 7",
       visitTime: new Date('2023-01-01T10:00:00Z'),
       pass: false,
@@ -61,7 +61,7 @@ async function seedData() {
         username: "host1",
         password: ePass2,
         email: "host@example.com",
-        phoneNumber: 9876543210,
+        phoneNumber: "9876543210",
         category: "host",
         visitors: [],
     };
@@ -70,7 +70,7 @@ async function seedData() {
     const visitor2 = {
         visitor_id: nextVisitorId++,
         name: "Visitor23",
-        phoneNumber: 1234567890,
+        phoneNumber: "1234567890",
         destination: "5, Jalan Oz 6",
         visitTime: new Date('2023-01-01T15:00:00Z'),
         pass: false,

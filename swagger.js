@@ -325,7 +325,7 @@
  *                          email:
  *                              type: string
  *                          phoneNumber:
- *                              type: Number
+ *                              type: string
  *                      required:
  *                          - username
  *                          - password
@@ -471,7 +471,7 @@
  *               email:
  *                 type: string
  *               phoneNumber:
- *                 type: number
+ *                 type: string
  *     responses:
  *       200:
  *         description: Host data updated successfully
@@ -758,7 +758,7 @@
  *                 type: string
  *                 description: Name of the visitor.
  *               phoneNumber:
- *                 type: number
+ *                 type: string
  *                 format: number
  *                 description: Phone number of the visitor.
  *               destination:
@@ -818,7 +818,7 @@
  *           type: string
  *           description: The name of the visitor
  *         phoneNumber:
- *           type: number
+ *           type: string
  *           description: Phone number of the visitor
  *         destination:
  *           type: string
@@ -848,7 +848,7 @@
  *           format: email
  *           description: The email address of the user
  *         phoneNumber:
- *           type: number
+ *           type: string
  *           description: The phone number of the user
  *         category:
  *           type: string
@@ -889,7 +889,7 @@
  *           description: Host's email
  *           example: john@example.com
  *         phoneNumber:
- *           type: number
+ *           type: string
  *           description: Host's phone number
  *           example: 1234567890
  */
