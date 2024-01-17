@@ -118,11 +118,15 @@ async function run() {
             res.setHeader('Content-Type', 'image/png');
             res.end(result, 'binary');
           }
-      }catch (error) {
-          console.error('Error during /retrievePass/:id', error);
+      } catch (error) {
+        console.error('Error during /retrievePass/:id', error);
+        // Handle different types of errors
+        if (error.name === 'CustomError') {
+          res.status(error.status).json({ error: error.message });
+        } else {
           res.status(500).json({ error: 'Internal Server Error' });
         }
-    } )
+    } })
     // success
     app.get('/retrieveContact/:visitor_id', authenticateAll, async(req,res)=>{
       try{
@@ -679,39 +683,38 @@ async function issueVisitorForHost(client, hostId, data) {
 }
 
 
-async function qrCodeCreation(client, id){
-  try{
+async function qrCodeCreation(client, id) {
+  try {
     console.log("this is id :", id);
     const data = await client.db(dbName).collection(collection2).find({}).toArray();
     console.log(data);
-    const visitorResult = await client.db(dbName).collection(collection2).findOne({visitor_id: parseInt(id)});
-    if(!visitorResult){
-      throw new Error( "Visitor not yet register");
+    const visitorResult = await client.db(dbName).collection(collection2).findOne({ visitor_id: parseInt(id) });
+    if (!visitorResult) {
+      return { name: 'CustomError', status: 404, message: 'Visitor not yet registered' };
     }
+
+    const host = await client.db(dbName).collection(collection1).findOne({ 'visitors.visitor_id': parseInt(id) });
+    console.log("host", host);
     const visitorData = {
-      visitor_id : visitorResult.visitor_id,
+      visitor_id: visitorResult.visitor_id,
       name: visitorResult.name,
       phoneNumber: visitorResult.phoneNumber,
       destination: visitorResult.destination,
-      visitTime: visitorResult.visitTime
-    }
-    const stringdata = JSON.stringify(visitorData)
-    const qrCode_produced = await qrCode_c.toBuffer(stringdata, {type: 'png'});
+      visitTime: visitorResult.visitTime,
+      hostNumber: host.phoneNumber
+    };
+    const stringdata = JSON.stringify(visitorData);
+    const qrCode_produced = await qrCode_c.toBuffer(stringdata, { type: 'png' });
     // Set the pass field to true in the database
-    const result = await client.db(dbName).collection(collection2).updateOne({visitor_id: parseInt(id)},{$set:{pass: true}});
-    if(!result){
+    const result = await client.db(dbName).collection(collection2).updateOne({ visitor_id: parseInt(id) }, { $set: { pass: true } });
+    if (!result) {
       console.log("fail");
     }
-    return (qrCode_produced);
-  }catch(error){
-    // If the error is about the visitor not being registered, return a custom error response
-    if (error.message === "Visitor not yet registered") {
-      return { status: 404, data: { error: "Visitor not yet registered" } };
-    }
+    return qrCode_produced;
+  } catch (error) {
     console.error('Error retrieving qr code for the visitor pass:', error);
-    return{status: 500, data:{ error: 'Internal Server Error'}};
+    throw { name: 'CustomError', status: 500, message: 'Error retrieving qr code for the visitor pass' };
   }
-
 }
 
 async function retrieveHostContact(client, visitor_id){
