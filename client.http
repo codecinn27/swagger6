@@ -27,14 +27,14 @@ Content-Type: application/json
 
 ###
 POST http://localhost:3000/create/host
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluMSIsInVzZXJJZCI6IjY1OTU4ZTA4MzYxNWVkMzc4N2JkYTYzMyIsImNhdGVnb3J5IjoiYWRtaW4iLCJpYXQiOjE3MDQzMDMxNDMsImV4cCI6MTcwNDMwNjc0M30.HlPG5RO4GB3Mry5jw4VnxQ1BnVwREPW5iLnCJcK5b94
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6ImFkbWluMSIsInVzZXJJZCI6IjY1YTVmYWU0NWNiZWEzMDVlOTA4MDAzOCIsImNhdGVnb3J5IjoiYWRtaW4iLCJpYXQiOjE3MDU0NzM5NDcsImV4cCI6MTcwNTQ3NzU0N30.MJcri0EBIN4UtI2NvgwZjkjBM6QmNIlnAe2Qq4BypQg
 Content-Type: application/json
 
 {
-    "username":"yc32343",
-    "password":"12345",
-    "email":"gg@gmail.com",
-    "phoneNumber":"123456789"
+  "username": "hostTest",
+  "password": "1234",
+  "email": "string23@gmail.com",
+  "phoneNumber": "01294523472"
 }
 
 ###

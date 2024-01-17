@@ -411,6 +411,12 @@ async function registerHost(client, data){
     if (existingUser){
       return {status:400 , data: { error: 'Username already exists' }};
     }
+
+    // check the password strength 
+    const strongPass = checkStrongPassword(password);
+    if(!strongPass.isStrong){
+      return{ status: 400, data:{error: 'Weak password', reasons: strongPass.reasons}};
+    }
     const hash = await bcrypt.hash(password,10);
     await client.db(dbName).collection(collection1).insertOne({
       username,
@@ -868,35 +874,43 @@ async function deleteHost(client, id){
 }
 
 async function deleteVisitor(client, data, userInfo){
-  let result3 = null; // Initialize result3 outside the block
-  let result4 = null;
   try{
     const result = await client.db(dbName).collection(collection2).findOne({name: data.name});
     if(!result){
       return {status: 404, data:{error : 'Visitors not found'}};
     }
-    // console.log("userInfo", userInfo);
-    //console.log("Result: ", result);
-    //console.log("User info in the function deleteVisitor", userInfo.category);
+
     const isVisitorRegisteredByHost = await checkIfVisitorRegisteredByHost(client, userInfo.username, result.visitor_id);
     if(userInfo.category == 'admin' || isVisitorRegisteredByHost){
-      const result2 = await client.db(dbName).collection(collection2).deleteOne({name: data.name});
+      let result3 = null; // Move the declaration inside the if condition
+      let result4 = null; // Move the declaration inside the if condition
       // Update the host data to remove the visitor
       if(isVisitorRegisteredByHost){
+      
+        const objectId = new ObjectId(userInfo.userId);
+        const found = await client.db(dbName).collection(collection1).findOne({ _id: objectId},{ visitors: { _id: result._id }  })
+        console.log("found",found);
         result3 = await client.db(dbName).collection(collection1).updateOne(
-          { _id: userInfo.userId },
-          { $pull: { visitors: { _id: result._id } } }
+          { _id: objectId},
+          { $pull: { visitors: { visitor_id: result.visitor_id } } },
+          false, // Upsert
+          true, // Multi
         );
+        //console.log("run 1");
       }else{
         result4 = await client.db(dbName).collection(collection1).updateOne(
           { 'visitors.visitor_id': result.visitor_id},
-          { $pull: { visitors: { _id: result._id } } }
+          { $pull: { visitors: { _id: result._id } } },
+          false, // Upsert
+          true, // Multi
         );
+        //console.log("run 2 ");
       }
+      const result2 = await client.db(dbName).collection(collection2).deleteOne({name: data.name});
 
-      if (result2.deletedCount === 1 && result4.modifiedCount === 1) {
+      if (result2 &&  result4) {
         return { status: 200, data: 'Visitor deleted successfully and successfully update by admin' };
-      } else if(result2.deletedCount === 1 && result3.modifiedCount === 1 ){
+      } else if(result2 && result3 ){
         return {status: 200, data: 'Visitor deleted successfully by host'}
       }else {
         return { status: 500, data: { error: 'Failed to update host data' } };
