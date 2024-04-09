@@ -1,7 +1,7 @@
 require("dotenv").config();
-const { MongoClient, ObjectId, ServerApiVersion } = require('mongodb');
-const url = process.env.MONGO_URL ;
-const credentials = process.env.certificate;
+const { MongoClient, ObjectId } = require('mongodb');
+const url = process.env.MONGO_URI ;
+//const credentials = process.env.certificate;
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const app = express();
@@ -21,8 +21,8 @@ const cors = require('cors');
 const qrCode_c = require('qrcode');
 const rateLimit = require('express-rate-limit');
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
-const client = new MongoClient(url, {tlsCertificateKeyFile: credentials, serverApi: ServerApiVersion.v1 });
-
+// const client = new MongoClient(url, {tlsCertificateKeyFile: credentials, serverApi: ServerApiVersion.v1 });
+const client = new MongoClient(url);
 const options = {
     definition:{
         openapi: "3.0.3",
@@ -776,7 +776,6 @@ const checkStrongPassword = (password) => {
       hasNumber &&
       hasSpecialChar
   );
-
   // Generate an array of reasons why the password might not be strong
   const reasons = [];
   if (password.length < minLength) {
@@ -794,7 +793,6 @@ const checkStrongPassword = (password) => {
   if (!hasSpecialChar) {
       reasons.push('Password should contain at least one special character.');
   }
-
   return {
       isStrong,
       reasons,
